@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { MobileNav } from "@/components/MobileNav";
 import { StoreHydrator } from "@/components/StoreHydrator";
 import "./globals.css";
 
@@ -54,10 +55,11 @@ export default function RootLayout({
               Fiber Craft
             </Link>
           </header>
-          <main className="flex-1 px-4 py-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
+          <main className="flex-1 px-4 py-6 pb-[calc(env(safe-area-inset-bottom)+6rem)]">
             {children}
           </main>
         </div>
+        <MobileNav />
       </body>
     </html>
   );

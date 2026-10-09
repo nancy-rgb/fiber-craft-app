@@ -12,7 +12,7 @@ Mobile-first, offline-ready PWA for building drop-shoulder sweaters and amigurum
 
 - `lib/types/project.ts` — shared project, piece, gauge, and measurement types
 - `lib/store/useProjectStore.ts` — IndexedDB-backed Zustand store (hydrated client-side by `components/StoreHydrator.tsx`)
-- `app/layout.tsx` — mobile layout shell
+- `app/layout.tsx` + `components/MobileNav.tsx` — mobile layout shell with bottom tab navigation
 
 ## Development
 

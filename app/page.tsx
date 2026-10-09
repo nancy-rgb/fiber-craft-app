@@ -1,63 +1,58 @@
 "use client";
 
+import Link from "next/link";
 import { useProjectStore } from "@/lib/store/useProjectStore";
 import type { NewProject } from "@/lib/types/project";
 
-const sampleSweater: NewProject = {
-  kind: "garment",
-  name: "Cozy drop-shoulder sweater",
-  style: "drop-shoulder-sweater",
-  gauge: { stitchesPerInch: 4.5, rowsPerInch: 6 },
-  measurements: {
-    chestWidth: 22,
-    bodyLength: 24,
-    sleeveLength: 18,
-    upperArmCircumference: 14,
-  },
-  pieces: [
-    { name: "Back", role: "back", quantity: 1 },
-    { name: "Front", role: "front", quantity: 1 },
-    { name: "Sleeve", role: "sleeve", quantity: 2 },
-  ],
-};
-
-const sampleAmigurumi: NewProject = {
-  kind: "amigurumi",
-  name: "Little bear",
+const sampleProject: NewProject = {
+  title: "Sample amigurumi ball",
+  craftType: "crochet",
+  category: "amigurumi",
   gauge: { stitchesPerInch: 5, rowsPerInch: 5 },
-  pieces: [
+  garmentData: null,
+  amigurumiShapes: [
     {
-      name: "Head",
-      primitive: "sphere",
-      dimensions: { diameter: 3 },
-      quantity: 1,
+      id: "sample-ball",
+      type: "sphere",
+      name: "Ball",
+      maxDiameterInches: 2,
+      heightInches: 2,
+    },
+  ],
+  instructions: [
+    {
+      stepNumber: 1,
+      label: "Rnd 1",
+      instructionText: "6 sc in magic ring",
+      stitchCount: 6,
     },
     {
-      name: "Body",
-      primitive: "cylinder",
-      dimensions: { diameter: 2.5, height: 3 },
-      quantity: 1,
+      stepNumber: 2,
+      label: "Rnd 2",
+      instructionText: "inc in each st",
+      stitchCount: 12,
     },
     {
-      name: "Leg",
-      primitive: "cylinder",
-      dimensions: { diameter: 1, height: 1.5 },
-      quantity: 4,
+      stepNumber: 3,
+      label: "Rnd 3",
+      instructionText: "(sc, inc) x6",
+      stitchCount: 18,
     },
     {
-      name: "Ear",
-      primitive: "cone",
-      dimensions: { diameter: 1, height: 0.75 },
-      quantity: 2,
+      stepNumber: 4,
+      label: "Rnd 4",
+      instructionText: "(sc 2, inc) x6",
+      stitchCount: 24,
     },
   ],
 };
 
-export default function Home() {
+export default function Dashboard() {
   const hasHydrated = useProjectStore((s) => s.hasHydrated);
   const projects = useProjectStore((s) => s.projects);
-  const createProject = useProjectStore((s) => s.createProject);
+  const addProject = useProjectStore((s) => s.addProject);
   const deleteProject = useProjectStore((s) => s.deleteProject);
+  const setCurrentStepIndex = useProjectStore((s) => s.setCurrentStepIndex);
 
   const list = Object.values(projects).sort((a, b) =>
     b.updatedAt.localeCompare(a.updatedAt),
@@ -66,66 +61,98 @@ export default function Home() {
   return (
     <div className="flex flex-col gap-6">
       <section>
-        <h1 className="text-2xl font-bold tracking-tight">Your projects</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <p className="mt-1 text-sm text-muted">
-          Saved on this device and available offline.
+          Your projects are saved on this device and work offline.
         </p>
       </section>
 
       {!hasHydrated ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : list.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted">
-          No projects yet. Start one below.
-        </p>
+        <div className="flex flex-col gap-3 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted">
+          <p>No projects yet.</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              href="/garments/new"
+              className="rounded-lg bg-accent px-3 py-3 font-semibold text-accent-foreground"
+            >
+              New Garment
+            </Link>
+            <Link
+              href="/amigurumi/new"
+              className="rounded-lg border border-border bg-card px-3 py-3 font-semibold text-foreground"
+            >
+              New Amigurumi
+            </Link>
+          </div>
+        </div>
       ) : (
         <ul className="flex flex-col gap-3">
-          {list.map((project) => (
-            <li
-              key={project.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-medium">{project.name}</p>
-                <p className="text-xs text-muted">
-                  {project.kind === "garment" ? "Garment" : "Amigurumi"} ·{" "}
-                  {project.pieces.length} pieces
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => deleteProject(project.id)}
-                className="shrink-0 rounded-lg px-3 py-2 text-sm text-muted active:bg-border"
-                aria-label={`Delete ${project.name}`}
+          {list.map((project) => {
+            const total = project.instructions.length;
+            const step = project.instructions[project.currentStepIndex];
+            return (
+              <li
+                key={project.id}
+                className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4"
               >
-                Delete
-              </button>
-            </li>
-          ))}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{project.title}</p>
+                    <p className="text-xs capitalize text-muted">
+                      {project.craftType} · {project.category}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => deleteProject(project.id)}
+                    className="shrink-0 rounded-lg px-2 py-1 text-sm text-muted active:bg-border"
+                    aria-label={`Delete ${project.title}`}
+                  >
+                    Delete
+                  </button>
+                </div>
+                {step && (
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="min-w-0 text-sm">
+                      <span className="font-semibold">
+                        Step {project.currentStepIndex + 1}/{total}
+                      </span>{" "}
+                      <span className="text-muted">
+                        {step.label}: {step.instructionText}
+                      </span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentStepIndex(
+                          project.id,
+                          project.currentStepIndex + 1,
+                        )
+                      }
+                      disabled={project.currentStepIndex >= total - 1}
+                      className="min-h-11 shrink-0 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground disabled:opacity-40"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
-      <section className="flex flex-col gap-3">
+      {hasHydrated && (
         <button
           type="button"
-          disabled={!hasHydrated}
-          onClick={() => createProject(sampleSweater)}
-          className="min-h-14 rounded-xl bg-accent px-4 text-base font-semibold text-accent-foreground disabled:opacity-50"
+          onClick={() => addProject(sampleProject)}
+          className="self-center text-sm text-muted underline underline-offset-4"
         >
-          Add sample sweater
+          Add a sample project
         </button>
-        <button
-          type="button"
-          disabled={!hasHydrated}
-          onClick={() => createProject(sampleAmigurumi)}
-          className="min-h-14 rounded-xl border border-border bg-card px-4 text-base font-semibold disabled:opacity-50"
-        >
-          Add sample amigurumi
-        </button>
-        <p className="text-center text-xs text-muted">
-          Garment and amigurumi builders arrive in a later phase.
-        </p>
-      </section>
+      )}
     </div>
   );
 }
