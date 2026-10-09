@@ -2,13 +2,70 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { GarmentPreview } from "@/components/GarmentPreview";
+import { ShapeStackPreview } from "@/components/ShapeStackPreview";
+import { calculateGarmentPlan } from "@/lib/math/garmentMath";
+import { activePieceIndex, garmentSection } from "@/lib/projectProgress";
 import { useProjectStore } from "@/lib/store/useProjectStore";
+import type { Project } from "@/lib/types/project";
+
+function buzz() {
+  if ("vibrate" in navigator) navigator.vibrate(50);
+}
+
+function Preview({ project }: { project: Project }) {
+  const index = project.currentStepIndex;
+  if (project.category === "amigurumi") {
+    if (project.amigurumiShapes.length === 0) return null;
+    return (
+      <ShapeStackPreview
+        shapes={project.amigurumiShapes}
+        activeIndex={activePieceIndex(project.instructions, index)}
+      />
+    );
+  }
+  if (!project.garmentData) return null;
+  try {
+    const plan = calculateGarmentPlan(project.garmentData, project.gauge);
+    const step = project.instructions[index];
+    return (
+      <GarmentPreview
+        inputs={project.garmentData}
+        gauge={project.gauge}
+        plan={plan}
+        active={step ? garmentSection(step.label) : null}
+      />
+    );
+  } catch {
+    return null;
+  }
+}
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
   const hasHydrated = useProjectStore((s) => s.hasHydrated);
   const project = useProjectStore((s) => s.projects[id]);
   const setCurrentStepIndex = useProjectStore((s) => s.setCurrentStepIndex);
+  const [resetArmed, setResetArmed] = useState(false);
+  const listRef = useRef<HTMLOListElement>(null);
+  const current = project?.currentStepIndex ?? 0;
+
+  useEffect(() => {
+    const list = listRef.current;
+    const item = list?.querySelector<HTMLElement>('[aria-current="step"]');
+    if (!list || !item) return;
+    list.scrollTo({
+      top: item.offsetTop - list.clientHeight / 2 + item.clientHeight / 2,
+      behavior: "smooth",
+    });
+  }, [current, hasHydrated]);
+
+  useEffect(() => {
+    if (!resetArmed) return;
+    const timer = setTimeout(() => setResetArmed(false), 3000);
+    return () => clearTimeout(timer);
+  }, [resetArmed]);
 
   if (!hasHydrated) return <p className="text-sm text-muted">Loading…</p>;
   if (!project) {
@@ -23,75 +80,148 @@ export default function ProjectPage() {
   }
 
   const total = project.instructions.length;
-  const current = project.currentStepIndex;
   const step = project.instructions[current];
+  const atStart = current === 0;
+  const atEnd = current >= total - 1;
   const go = (index: number) => setCurrentStepIndex(project.id, index);
 
+  const tap = () => {
+    if (atEnd) return;
+    buzz();
+    go(current + 1);
+  };
+
+  const reset = () => {
+    if (!resetArmed) {
+      setResetArmed(true);
+      return;
+    }
+    setResetArmed(false);
+    go(0);
+  };
+
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{project.title}</h1>
         <p className="text-xs capitalize text-muted">
-          {project.craftType} · {project.category} · step {current + 1}/{total}
+          {project.craftType} · {project.category}
         </p>
       </div>
 
       {step && (
-        <section className="flex flex-col gap-3 rounded-xl border border-accent bg-card p-4">
-          <p className="text-sm font-semibold">{step.label}</p>
-          <p className="text-lg">{step.instructionText}</p>
-          <p className="text-sm text-muted">{step.stitchCount} sts</p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => go(current - 1)}
-              disabled={current === 0}
-              className="min-h-12 rounded-lg border border-border font-semibold disabled:opacity-40"
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={() => go(current + 1)}
-              disabled={current >= total - 1}
-              className="min-h-12 rounded-lg bg-accent font-semibold text-accent-foreground disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
+        <section
+          aria-live="polite"
+          className="rounded-2xl border-2 border-accent bg-card p-4"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-accent">
+            Now · {step.label}
+          </p>
+          <p className="mt-1 text-xl font-semibold leading-snug">
+            {step.instructionText}
+          </p>
+          <p className="mt-1 text-sm text-muted">{step.stitchCount} sts</p>
         </section>
       )}
 
-      <ol className="flex flex-col divide-y divide-border rounded-xl border border-border bg-card">
-        {project.instructions.map((instruction, index) => (
-          <li key={instruction.stepNumber}>
-            <button
-              type="button"
-              onClick={() => go(index)}
-              aria-current={index === current ? "step" : undefined}
-              className={`flex w-full items-start gap-3 px-4 py-3 text-left text-sm ${
-                index === current ? "bg-accent/10" : ""
-              }`}
-            >
-              <span
-                aria-hidden
-                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
-                  index < current
-                    ? "border-accent bg-accent text-accent-foreground"
-                    : "border-border"
+      <button
+        type="button"
+        onClick={tap}
+        disabled={atEnd}
+        aria-label={
+          atEnd
+            ? "Pattern complete"
+            : `Done with step ${current + 1}, go to step ${current + 2}`
+        }
+        className="flex min-h-[36vh] w-full touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-3xl bg-foreground text-background shadow-lg transition-transform active:scale-[0.97] disabled:opacity-70"
+      >
+        <span className="text-xs uppercase tracking-[0.2em] opacity-70">
+          Step
+        </span>
+        <span className="text-8xl font-bold tabular-nums leading-none">
+          {current + 1}
+        </span>
+        <span className="text-sm opacity-80">
+          {atEnd ? `of ${total} · all done!` : `of ${total} · tap when done`}
+        </span>
+      </button>
+
+      <div className="grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          onClick={() => go(current - 1)}
+          disabled={atStart}
+          aria-label="Previous step"
+          className="min-h-12 rounded-xl border border-border bg-card font-semibold disabled:opacity-40"
+        >
+          ‹ Back
+        </button>
+        <button
+          type="button"
+          onClick={reset}
+          disabled={atStart && !resetArmed}
+          className={`min-h-12 rounded-xl border font-semibold disabled:opacity-40 ${
+            resetArmed
+              ? "border-accent bg-accent text-accent-foreground"
+              : "border-border bg-card"
+          }`}
+        >
+          {resetArmed ? "Tap to confirm" : "Reset"}
+        </button>
+        <button
+          type="button"
+          onClick={() => go(current + 1)}
+          disabled={atEnd}
+          aria-label="Next step"
+          className="min-h-12 rounded-xl border border-border bg-card font-semibold disabled:opacity-40"
+        >
+          Skip ›
+        </button>
+      </div>
+
+      <section className="rounded-xl border border-border bg-card p-3">
+        <Preview project={project} />
+      </section>
+
+      <ol
+        ref={listRef}
+        className="relative flex max-h-80 flex-col overflow-y-auto rounded-xl border border-border bg-card"
+      >
+        {project.instructions.map((instruction, index) => {
+          const isCurrent = index === current;
+          const isDone = index < current;
+          return (
+            <li key={instruction.stepNumber}>
+              <button
+                type="button"
+                onClick={() => go(index)}
+                aria-current={isCurrent ? "step" : undefined}
+                className={`flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left last:border-b-0 ${
+                  isCurrent
+                    ? "bg-accent/15 text-base font-semibold"
+                    : "text-sm opacity-50"
                 }`}
               >
-                {index < current ? "✓" : ""}
-              </span>
-              <span
-                className={index < current ? "text-muted line-through" : ""}
-              >
-                <span className="font-medium">{instruction.label}:</span>{" "}
-                {instruction.instructionText}
-              </span>
-            </button>
-          </li>
-        ))}
+                <span
+                  aria-hidden
+                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
+                    isDone
+                      ? "border-accent bg-accent text-accent-foreground"
+                      : isCurrent
+                        ? "border-accent"
+                        : "border-border"
+                  }`}
+                >
+                  {isDone ? "✓" : ""}
+                </span>
+                <span className={isDone ? "line-through" : ""}>
+                  <span className="font-medium">{instruction.label}:</span>{" "}
+                  {instruction.instructionText}
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ol>
     </div>
   );

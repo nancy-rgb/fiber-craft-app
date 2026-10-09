@@ -6,7 +6,14 @@ const GAP = 6;
 const heightOf = (s: AmigurumiShape) =>
   s.type === "sphere" ? s.maxDiameterInches : s.heightInches;
 
-export function ShapeStackPreview({ shapes }: { shapes: AmigurumiShape[] }) {
+export function ShapeStackPreview({
+  shapes,
+  activeIndex,
+}: {
+  shapes: AmigurumiShape[];
+  /** Highlights the piece being worked; others are dimmed. */
+  activeIndex?: number;
+}) {
   if (shapes.length === 0) return null;
   const maxWidth = Math.max(...shapes.map((s) => s.maxDiameterInches));
   const totalHeight = shapes.reduce((sum, s) => sum + heightOf(s), 0);
@@ -22,14 +29,17 @@ export function ShapeStackPreview({ shapes }: { shapes: AmigurumiShape[] }) {
       role="img"
       aria-label={`Preview of ${shapes.map((s) => s.name).join(", ")}`}
     >
-      {shapes.map((shape) => {
+      {shapes.map((shape, index) => {
         const w = shape.maxDiameterInches * scale;
         const h = heightOf(shape) * scale;
         const top = y;
         y += h + GAP;
+        const dimmed = activeIndex !== undefined && activeIndex !== index;
         const common = {
-          className: "fill-accent/20 stroke-accent",
-          strokeWidth: 2,
+          className: dimmed
+            ? "fill-border/40 stroke-muted"
+            : "fill-accent/20 stroke-accent",
+          strokeWidth: activeIndex === index ? 3 : 2,
         };
         return (
           <g key={shape.id}>

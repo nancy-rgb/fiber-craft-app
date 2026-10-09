@@ -99,7 +99,12 @@ export default function Dashboard() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate font-medium">{project.title}</p>
+                    <Link
+                      href={`/project/${project.id}`}
+                      className="block truncate font-medium underline-offset-4 hover:underline"
+                    >
+                      {project.title}
+                    </Link>
                     <p className="text-xs capitalize text-muted">
                       {project.craftType} · {project.category}
                     </p>

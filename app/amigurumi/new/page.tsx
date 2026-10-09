@@ -18,6 +18,7 @@ import {
   maxStitchesForDiameter,
   planSpiralRounds,
 } from "@/lib/math/amigurumiMath";
+import { PIECE_SEPARATOR } from "@/lib/projectProgress";
 import { useProjectStore } from "@/lib/store/useProjectStore";
 import type {
   AmigurumiShape,
@@ -56,7 +57,7 @@ function buildInstructions(
     .flatMap((shape, i) =>
       calculateSpiralShape(shape, gauge).map((step) => ({
         ...step,
-        label: `${pieceName(shape, i)} · ${step.label}`,
+        label: `${pieceName(shape, i)}${PIECE_SEPARATOR}${step.label}`,
       })),
     )
     .map((step, i) => ({ ...step, stepNumber: i + 1 }));
