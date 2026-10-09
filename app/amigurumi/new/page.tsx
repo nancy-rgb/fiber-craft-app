@@ -117,7 +117,14 @@ export default function NewAmigurumiPage() {
 
   const update = (id: string, patch: Partial<AmigurumiShape>) =>
     setShapes((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const next = { ...s, ...patch };
+        // Spheres have no height control; keep it in sync with the diameter.
+        return next.type === "sphere"
+          ? { ...next, heightInches: next.maxDiameterInches }
+          : next;
+      }),
     );
 
   const move = (index: number, delta: number) =>
