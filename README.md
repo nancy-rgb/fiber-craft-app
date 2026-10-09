@@ -12,6 +12,7 @@ Mobile-first, offline-ready PWA for building drop-shoulder sweaters and amigurum
 
 - `lib/types/project.ts` — shared project, piece, gauge, and measurement types
 - `lib/store/useProjectStore.ts` — IndexedDB-backed Zustand store (hydrated client-side by `components/StoreHydrator.tsx`)
+- `lib/math/garmentMath.ts`, `lib/math/amigurumiMath.ts` — pure pattern engines (drop-shoulder sweater, 6 × N spiral rounds)
 - `app/layout.tsx` + `components/MobileNav.tsx` — mobile layout shell with bottom tab navigation
 
 ## Development
@@ -23,5 +24,6 @@ npm install
 npm run dev        # http://localhost:3000
 npm run lint
 npm run typecheck
+npm test           # Vitest unit tests (lib/math/__tests__)
 npm run build
 ```
