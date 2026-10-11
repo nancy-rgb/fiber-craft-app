@@ -135,15 +135,15 @@ export function ProjectWorkingView() {
             ? "Pattern complete"
             : `Done with step ${current + 1}, go to step ${current + 2}`
         }
-        className="flex min-h-[36vh] w-full touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-3xl bg-foreground text-background shadow-lg transition-transform active:scale-[0.97] disabled:opacity-70"
+        className="flex min-h-[36vh] w-full touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-3xl border-2 border-foreground/15 bg-oat text-foreground shadow-sm transition-transform active:scale-[0.97] disabled:opacity-70"
       >
-        <span className="text-xs uppercase tracking-[0.2em] opacity-70">
+        <span className="text-xs uppercase tracking-[0.2em] text-muted">
           Step
         </span>
         <span className="text-8xl font-bold tabular-nums leading-none">
           {current + 1}
         </span>
-        <span className="text-sm opacity-80">
+        <span className="text-sm text-muted">
           {atEnd ? `of ${total} · all done!` : `of ${total} · tap when done`}
         </span>
       </button>
@@ -200,7 +200,7 @@ export function ProjectWorkingView() {
                 aria-current={isCurrent ? "step" : undefined}
                 className={`flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left last:border-b-0 ${
                   isCurrent
-                    ? "bg-accent/15 text-base font-semibold"
+                    ? "bg-apricot/45 text-base font-semibold"
                     : "text-sm opacity-50"
                 }`}
               >
@@ -208,7 +208,7 @@ export function ProjectWorkingView() {
                   aria-hidden
                   className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
                     isDone
-                      ? "border-accent bg-accent text-accent-foreground"
+                      ? "border-moss bg-moss text-moss-foreground"
                       : isCurrent
                         ? "border-accent"
                         : "border-border"

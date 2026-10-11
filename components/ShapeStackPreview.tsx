@@ -38,7 +38,7 @@ export function ShapeStackPreview({
         const common = {
           className: dimmed
             ? "fill-border/40 stroke-muted"
-            : "fill-accent/20 stroke-accent",
+            : "fill-rose/40 stroke-accent",
           strokeWidth: activeIndex === index ? 3 : 2,
         };
         return (

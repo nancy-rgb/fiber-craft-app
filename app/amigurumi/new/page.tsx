@@ -191,7 +191,7 @@ export default function NewAmigurumiPage() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Amigurumi friend"
-          className="min-h-11 rounded-lg border border-border bg-card px-3 text-base outline-none focus:border-accent"
+          className="min-h-11 rounded-lg border border-control bg-card px-3 text-base outline-none focus:border-accent"
         />
       </div>
 
@@ -232,7 +232,7 @@ export default function NewAmigurumiPage() {
                   value={shape.name}
                   onChange={(e) => update(shape.id, { name: e.target.value })}
                   placeholder={`Piece ${index + 1}`}
-                  className="min-h-11 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-base font-medium outline-none focus:border-accent"
+                  className="min-h-11 min-w-0 flex-1 rounded-lg border border-control bg-card px-3 text-base font-medium outline-none focus:border-accent"
                 />
                 <button
                   type="button"

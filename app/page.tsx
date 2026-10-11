@@ -81,7 +81,7 @@ export default function Dashboard() {
             </Link>
             <Link
               href="/amigurumi/new"
-              className="rounded-lg border border-border bg-card px-3 py-3 font-semibold text-foreground"
+              className="rounded-lg border-2 border-moss px-3 py-3 font-semibold text-moss"
             >
               New Amigurumi
             </Link>
@@ -119,29 +119,53 @@ export default function Dashboard() {
                   </button>
                 </div>
                 {step && (
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="min-w-0 text-sm">
-                      <span className="font-semibold">
-                        Step {project.currentStepIndex + 1}/{total}
-                      </span>{" "}
-                      <span className="text-muted">
-                        {step.label}: {step.instructionText}
-                      </span>
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setCurrentStepIndex(
-                          project.id,
-                          project.currentStepIndex + 1,
-                        )
-                      }
-                      disabled={project.currentStepIndex >= total - 1}
-                      className="min-h-11 shrink-0 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground disabled:opacity-40"
-                    >
-                      Next
-                    </button>
-                  </div>
+                  <>
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-sm">
+                        <span className="font-semibold">
+                          Step {project.currentStepIndex + 1}/{total}
+                        </span>{" "}
+                        <span className="text-muted">
+                          {step.label}: {step.instructionText}
+                        </span>
+                      </p>
+                      <div
+                        className="h-1.5 overflow-hidden rounded-full bg-oat"
+                        aria-hidden
+                      >
+                        <div
+                          className="h-full rounded-full bg-moss"
+                          style={{
+                            width: `${((project.currentStepIndex + 1) / total) * 100}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/project/${project.id}`}
+                        className="flex min-h-11 flex-1 items-center justify-center rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground"
+                      >
+                        {project.craftType === "knitting"
+                          ? "Continue knitting"
+                          : "Continue crocheting"}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCurrentStepIndex(
+                            project.id,
+                            project.currentStepIndex + 1,
+                          )
+                        }
+                        disabled={project.currentStepIndex >= total - 1}
+                        aria-label={`Next step of ${project.title}`}
+                        className="min-h-11 shrink-0 rounded-lg border-2 border-moss px-4 text-sm font-semibold text-moss disabled:opacity-40"
+                      >
+                        +1 step
+                      </button>
+                    </div>
+                  </>
                 )}
               </li>
             );

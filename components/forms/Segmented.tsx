@@ -15,7 +15,7 @@ export function Segmented<T extends string>({
     <div
       role="radiogroup"
       aria-label={label}
-      className="grid auto-cols-fr grid-flow-col gap-1 rounded-lg border border-border bg-card p-1"
+      className="grid auto-cols-fr grid-flow-col gap-1 rounded-lg bg-oat p-1"
     >
       {options.map((option) => (
         <button

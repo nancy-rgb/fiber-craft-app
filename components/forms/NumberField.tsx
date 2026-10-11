@@ -20,7 +20,7 @@ export function NumberField({
       <label htmlFor={id} className="text-sm font-medium">
         {label}
       </label>
-      <div className="flex items-center rounded-lg border border-border bg-card focus-within:border-accent">
+      <div className="flex items-center rounded-lg border border-control bg-card focus-within:border-accent">
         <input
           id={id}
           type="number"
