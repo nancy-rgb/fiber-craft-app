@@ -1,7 +1,23 @@
+import { randomUUID } from "node:crypto";
+import withSerwistInit from "@serwist/next";
 import type { NextConfig } from "next";
+import { OFFLINE_SHELL_ID } from "./lib/offlineShell";
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
+const revision = process.env.VERCEL_GIT_COMMIT_SHA ?? randomUUID();
 
-export default nextConfig;
+const withSerwist = withSerwistInit({
+  swSrc: "app/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === "development",
+  additionalPrecacheEntries: [
+    "/",
+    "/garments/new",
+    "/amigurumi/new",
+    `/project/${OFFLINE_SHELL_ID}`,
+    "/manifest.webmanifest",
+  ].map((url) => ({ url, revision })),
+});
+
+const nextConfig: NextConfig = {};
+
+export default withSerwist(nextConfig);
