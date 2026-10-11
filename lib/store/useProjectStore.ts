@@ -87,11 +87,26 @@ export const useProjectStore = create<ProjectState>()(
     }),
     {
       name: "fiber-craft-projects",
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => idbStorage),
       partialize: ({ projects }) => ({ projects }),
-      // Phase 1 drafts used a different shape; start fresh rather than migrate.
-      migrate: () => ({ projects: {} }),
+      migrate: (persisted, version) => {
+        if (version === 2) {
+          const { projects } = persisted as {
+            projects: Record<string, Project>;
+          };
+          return {
+            projects: Object.fromEntries(
+              Object.entries(projects).map(([id, p]) => [
+                id,
+                { ...p, colorworkData: null },
+              ]),
+            ),
+          };
+        }
+        // Phase 1 drafts used a different shape; start fresh rather than migrate.
+        return { projects: {} };
+      },
       // IndexedDB only exists in the browser; StoreHydrator rehydrates on mount.
       skipHydration: true,
       onRehydrateStorage: () => () => {

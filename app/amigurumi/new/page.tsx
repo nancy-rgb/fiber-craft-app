@@ -167,6 +167,7 @@ export default function NewAmigurumiPage() {
       gauge,
       garmentData: null,
       amigurumiShapes: named,
+      colorworkData: null,
       instructions: buildInstructions(named, gauge),
     });
     router.push(`/project/${id}`);

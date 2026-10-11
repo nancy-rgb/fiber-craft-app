@@ -1,6 +1,6 @@
 export type CraftType = "knitting" | "crochet";
 
-export type ProjectCategory = "garment" | "amigurumi";
+export type ProjectCategory = "garment" | "amigurumi" | "colorwork";
 
 export interface Gauge {
   stitchesPerInch: number;
@@ -26,6 +26,21 @@ export interface AmigurumiShape {
   heightInches: number;
 }
 
+export interface YarnColor {
+  id: string;
+  name: string;
+  hex: string;
+}
+
+export interface ColorworkGrid {
+  width: number;
+  height: number;
+  palette: YarnColor[];
+  /** cells[0] is the top chart row; Row 1 is cells[height - 1]. Values are YarnColor ids. */
+  cells: string[][];
+  workedInRound: boolean;
+}
+
 export interface CalculatedInstruction {
   stepNumber: number;
   label: string;
@@ -41,6 +56,7 @@ export interface Project {
   gauge: Gauge;
   garmentData: GarmentInputs | null;
   amigurumiShapes: AmigurumiShape[];
+  colorworkData: ColorworkGrid | null;
   instructions: CalculatedInstruction[];
   currentStepIndex: number;
   createdAt: string;

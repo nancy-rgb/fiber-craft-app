@@ -27,6 +27,16 @@ const tabs = [
       </>
     ),
   },
+  {
+    href: "/colorwork/new",
+    label: "New Colorwork",
+    icon: (
+      <>
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+      </>
+    ),
+  },
 ];
 
 export function MobileNav() {
@@ -37,7 +47,7 @@ export function MobileNav() {
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
-      <ul className="mx-auto grid max-w-md grid-cols-3">
+      <ul className="mx-auto grid max-w-md grid-cols-4">
         {tabs.map((tab) => {
           const active =
             tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
