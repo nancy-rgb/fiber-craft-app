@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@serwist/next": "9.5.12",
     "idb-keyval": "^6.3.0",
     "next": "15.5.27",
     "react": "19.1.0",
@@ -25,6 +26,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.27",
+    "serwist": "9.5.12",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3.2.7"

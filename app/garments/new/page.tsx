@@ -208,7 +208,7 @@ export default function NewGarmentPage() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Drop-shoulder sweater"
-          className="min-h-11 rounded-lg border border-border bg-card px-3 text-base outline-none focus:border-accent"
+          className="min-h-11 rounded-lg border border-control bg-card px-3 text-base outline-none focus:border-accent"
         />
       </div>
 
@@ -251,7 +251,7 @@ export default function NewGarmentPage() {
           />
         </label>
         {hoodieMode && (
-          <p className="rounded-lg bg-accent/10 p-3 text-xs">
+          <p className="rounded-lg bg-apricot/35 p-3 text-xs">
             Lay your hoodie flat on a table and measure it as shown under each
             field. We filled in typical sizes to start.
           </p>

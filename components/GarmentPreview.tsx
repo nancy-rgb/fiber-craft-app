@@ -44,7 +44,7 @@ export function GarmentPreview({
     return {
       className: dimmed
         ? "fill-border/40 stroke-muted"
-        : "fill-accent/20 stroke-accent",
+        : "fill-rose/40 stroke-accent",
       strokeWidth: active === section ? 3 : 2,
       strokeLinejoin: "round" as const,
     };
