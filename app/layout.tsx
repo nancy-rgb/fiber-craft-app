@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { InstallIntro } from "@/components/InstallIntro";
 import { MobileNav } from "@/components/MobileNav";
 import { StoreHydrator } from "@/components/StoreHydrator";
 import "./globals.css";
@@ -49,7 +50,12 @@ export default function RootLayout({
         <StoreHydrator />
         <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
           <header className="sticky top-0 z-10 border-b border-border bg-background/90 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur">
-            <Link href="/" className="text-lg font-semibold tracking-tight">
+            <Link
+              href="/"
+              className="flex items-center gap-2.5 text-lg font-semibold tracking-tight"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icons/logo.png" alt="" className="size-9" />
               Fiber Craft
             </Link>
           </header>
@@ -58,6 +64,7 @@ export default function RootLayout({
           </main>
         </div>
         <MobileNav />
+        <InstallIntro />
       </body>
     </html>
   );
