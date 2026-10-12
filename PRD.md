@@ -28,6 +28,14 @@
 - **Visual Preview:** Dynamic SVG rendering of panel silhouettes or stacked amigurumi shapes.
 - **Offline Persistence:** State auto-saves to browser storage instantly on every tap.
 
+### D. Colorwork & Pixel Chart Engine
+
+- **Chart Builder:** Pixel grid with paintbrush, paint bucket (flood fill), eraser and color picker; 2–6 yarn colors.
+- **Image to Chart:** Upload a photo and quantize it to the chosen yarn palette at a target stitch/row size.
+- **Gauge-Aware Cells:** Cells are drawn at the stitch-to-row ratio from the gauge so charts don't distort.
+- **Written Rows:** Row-by-row run-length instructions ("Row 1 (RS): 4 MC, 2 CC, 8 MC"), reading right-to-left on RS rows and left-to-right on WS rows when worked flat; every round reads right-to-left in the round.
+- **Working View:** Chart view with the active row highlighted in sync with the row counter, toggleable with written instructions.
+
 ## 3. Technical Stack & Architecture
 
 | Layer                 | Technology                                              |

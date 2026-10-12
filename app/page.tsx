@@ -19,6 +19,7 @@ const sampleProject: NewProject = {
       heightInches: 2,
     },
   ],
+  colorworkData: null,
   instructions: [
     {
       stepNumber: 1,
@@ -84,6 +85,12 @@ export default function Dashboard() {
               className="rounded-lg border-2 border-moss px-3 py-3 font-semibold text-moss"
             >
               New Amigurumi
+            </Link>
+            <Link
+              href="/colorwork/new"
+              className="col-span-2 rounded-lg border-2 border-moss px-3 py-3 font-semibold text-moss"
+            >
+              New Colorwork
             </Link>
           </div>
         </div>

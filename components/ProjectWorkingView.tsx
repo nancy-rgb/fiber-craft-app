@@ -3,8 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { ColorworkChart } from "@/components/ColorworkChart";
+import { Segmented } from "@/components/forms/Segmented";
 import { GarmentPreview } from "@/components/GarmentPreview";
 import { ShapeStackPreview } from "@/components/ShapeStackPreview";
+import {
+  cellAspect,
+  colorAbbreviations,
+  readsRightToLeft,
+  rowRuns,
+} from "@/lib/math/colorworkMath";
 import { calculateGarmentPlan } from "@/lib/math/garmentMath";
 import { activePieceIndex, garmentSection } from "@/lib/projectProgress";
 import { useProjectStore } from "@/lib/store/useProjectStore";
@@ -50,6 +58,7 @@ export function ProjectWorkingView() {
   const project = useProjectStore((s) => s.projects[id]);
   const setCurrentStepIndex = useProjectStore((s) => s.setCurrentStepIndex);
   const [resetArmed, setResetArmed] = useState(false);
+  const [view, setView] = useState<"chart" | "written">("chart");
   const listRef = useRef<HTMLOListElement>(null);
   const current = project?.currentStepIndex ?? 0;
 
@@ -61,7 +70,7 @@ export function ProjectWorkingView() {
       top: item.offsetTop - list.clientHeight / 2 + item.clientHeight / 2,
       behavior: "smooth",
     });
-  }, [current, hasHydrated]);
+  }, [current, hasHydrated, view]);
 
   useEffect(() => {
     if (!resetArmed) return;
@@ -85,6 +94,12 @@ export function ProjectWorkingView() {
   const step = project.instructions[current];
   const atStart = current === 0;
   const atEnd = current >= total - 1;
+  const colorwork =
+    project.category === "colorwork" ? project.colorworkData : null;
+  const abbreviations = colorwork
+    ? colorAbbreviations(colorwork.palette)
+    : null;
+  const colorHex = new Map(colorwork?.palette.map((c) => [c.id, c.hex]));
   const go = (index: number) => setCurrentStepIndex(project.id, index);
 
   const tap = () => {
@@ -101,6 +116,49 @@ export function ProjectWorkingView() {
     setResetArmed(false);
     go(0);
   };
+
+  const stepList = (
+    <ol
+      ref={listRef}
+      className="relative flex max-h-80 flex-col overflow-y-auto rounded-xl border border-border bg-card"
+    >
+      {project.instructions.map((instruction, index) => {
+        const isCurrent = index === current;
+        const isDone = index < current;
+        return (
+          <li key={instruction.stepNumber}>
+            <button
+              type="button"
+              onClick={() => go(index)}
+              aria-current={isCurrent ? "step" : undefined}
+              className={`flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left last:border-b-0 ${
+                isCurrent
+                  ? "bg-apricot/45 text-base font-semibold"
+                  : "text-sm opacity-50"
+              }`}
+            >
+              <span
+                aria-hidden
+                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
+                  isDone
+                    ? "border-moss bg-moss text-moss-foreground"
+                    : isCurrent
+                      ? "border-accent"
+                      : "border-border"
+                }`}
+              >
+                {isDone ? "✓" : ""}
+              </span>
+              <span className={isDone ? "line-through" : ""}>
+                <span className="font-medium">{instruction.label}:</span>{" "}
+                {instruction.instructionText}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ol>
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -123,6 +181,37 @@ export function ProjectWorkingView() {
             {step.instructionText}
           </p>
           <p className="mt-1 text-sm text-muted">{step.stitchCount} sts</p>
+          {colorwork && abbreviations && (
+            <>
+              <ul
+                aria-label="Stitches in working order"
+                className="mt-2 flex flex-wrap gap-1.5"
+              >
+                {rowRuns(
+                  colorwork.cells,
+                  current + 1,
+                  colorwork.workedInRound,
+                ).map((run, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-1 rounded-md border border-border bg-background px-1.5 py-0.5 text-sm tabular-nums"
+                  >
+                    <span
+                      aria-hidden
+                      className="size-3 rounded-sm border border-foreground/20"
+                      style={{ backgroundColor: colorHex.get(run.colorId) }}
+                    />
+                    {run.count} {abbreviations.get(run.colorId)}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1 text-xs text-muted">
+                {readsRightToLeft(current + 1, colorwork.workedInRound)
+                  ? "Read the chart row right to left ←"
+                  : "Read the chart row left to right →"}
+              </p>
+            </>
+          )}
         </section>
       )}
 
@@ -181,50 +270,41 @@ export function ProjectWorkingView() {
         </button>
       </div>
 
-      <section className="rounded-xl border border-border bg-card p-3">
-        <Preview project={project} />
-      </section>
-
-      <ol
-        ref={listRef}
-        className="relative flex max-h-80 flex-col overflow-y-auto rounded-xl border border-border bg-card"
-      >
-        {project.instructions.map((instruction, index) => {
-          const isCurrent = index === current;
-          const isDone = index < current;
-          return (
-            <li key={instruction.stepNumber}>
-              <button
-                type="button"
-                onClick={() => go(index)}
-                aria-current={isCurrent ? "step" : undefined}
-                className={`flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left last:border-b-0 ${
-                  isCurrent
-                    ? "bg-apricot/45 text-base font-semibold"
-                    : "text-sm opacity-50"
-                }`}
-              >
-                <span
-                  aria-hidden
-                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
-                    isDone
-                      ? "border-moss bg-moss text-moss-foreground"
-                      : isCurrent
-                        ? "border-accent"
-                        : "border-border"
-                  }`}
-                >
-                  {isDone ? "✓" : ""}
-                </span>
-                <span className={isDone ? "line-through" : ""}>
-                  <span className="font-medium">{instruction.label}:</span>{" "}
-                  {instruction.instructionText}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+      {colorwork ? (
+        <>
+          <Segmented
+            label="Instructions view"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "chart", label: "Chart view" },
+              { value: "written", label: "Written view" },
+            ]}
+          />
+          {view === "chart" ? (
+            <section className="rounded-xl border border-border bg-card py-2">
+              <ColorworkChart
+                grid={colorwork.cells}
+                palette={colorwork.palette}
+                cellAspect={cellAspect(project.gauge)}
+                workedInRound={colorwork.workedInRound}
+                activeRow={colorwork.cells.length - 1 - current}
+                label={`Colorwork chart with row ${current + 1} highlighted`}
+                className="max-h-[60vh]"
+              />
+            </section>
+          ) : (
+            stepList
+          )}
+        </>
+      ) : (
+        <>
+          <section className="rounded-xl border border-border bg-card p-3">
+            <Preview project={project} />
+          </section>
+          {stepList}
+        </>
+      )}
     </div>
   );
 }
