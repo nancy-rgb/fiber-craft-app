@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  calculateAssembly,
   calculateSpiralShape,
   maxStitchesForDiameter,
+  placeEyes,
   planSpiralRounds,
+  stripeForRound,
 } from "@/lib/math/amigurumiMath";
 import type { AmigurumiShape, Gauge } from "@/lib/types/project";
 
@@ -150,5 +153,187 @@ describe("calculateSpiralShape", () => {
     expect(steps.map((s) => s.stepNumber)).toEqual(steps.map((_, i) => i + 1));
     expect(steps[0].label).toBe("Rnd 1");
     expect(steps.at(-1)).toMatchObject({ label: "Finish", stitchCount: 6 });
+  });
+});
+
+describe("safety eyes and face details", () => {
+  const head = shape({ type: "sphere", maxDiameterInches: 3 });
+  const eyes = { eyeSizeMm: 9, eyePlacementRound: 9, eyeDistanceStitches: 7 };
+
+  it("centers the eye pair on the front of the placement round", () => {
+    const rounds = planSpiralRounds(head, gauge);
+    const pos = placeEyes(eyes, rounds);
+    const sts = rounds[8].stitches;
+    expect(pos.roundStitches).toBe(sts);
+    expect(pos.center).toBe(sts / 2);
+    expect(pos.second - pos.first).toBe(7);
+    expect(pos.first).toBe(sts / 2 - 3);
+  });
+
+  it("clamps out-of-range rounds and spacing", () => {
+    const rounds = planSpiralRounds(head, gauge);
+    const pos = placeEyes(
+      { eyeSizeMm: 0, eyePlacementRound: 999, eyeDistanceStitches: 999 },
+      rounds,
+    );
+    expect(pos.round).toBe(rounds.length);
+    expect(pos.first).toBeGreaterThanOrEqual(1);
+    expect(pos.second).toBeLessThanOrEqual(pos.roundStitches);
+    expect(pos.sizeMm).toBe(9);
+  });
+
+  it("marks eyes after their round and inserts them before the first decrease", () => {
+    const early = { ...eyes, eyePlacementRound: 5 };
+    const steps = calculateSpiralShape(
+      { ...head, eyes: early, facialFeatures: ["nose", "mouth", "cheeks"] },
+      gauge,
+    );
+    const labels = steps.map((s) => s.label);
+    expect(labels[labels.indexOf("Rnd 5") + 1]).toBe("Eye markers");
+    const firstDecrease = planSpiralRounds(head, gauge).findIndex(
+      (r) => r.kind === "decrease",
+    );
+    const eyeStep = labels.indexOf("Eyes");
+    expect(labels[eyeStep - 1]).toBe(`Rnd ${firstDecrease}`);
+    expect(labels.slice(eyeStep, eyeStep + 4)).toEqual([
+      "Eyes",
+      "Nose",
+      "Mouth",
+      "Cheeks",
+    ]);
+    expect(steps[eyeStep].instructionText).toContain("9 mm safety eyes");
+    expect(steps.map((s) => s.stepNumber)).toEqual(steps.map((_, i) => i + 1));
+  });
+
+  it("skips the separate marker step when eyes go in right after their round", () => {
+    const rounds = planSpiralRounds(head, gauge);
+    const late = { ...eyes, eyePlacementRound: rounds.length - 1 };
+    const labels = calculateSpiralShape({ ...head, eyes: late }, gauge).map(
+      (s) => s.label,
+    );
+    expect(labels).not.toContain("Eye markers");
+    expect(labels[labels.indexOf("Eyes") - 1]).toBe(`Rnd ${rounds.length - 1}`);
+  });
+});
+
+describe("stripes", () => {
+  const stripes = [
+    { colorName: "Cream", hex: "#ffffff", rounds: 2 },
+    { colorName: "Rose", hex: "#d7a6a0", rounds: 1 },
+  ];
+
+  it("repeats the sequence from round 1", () => {
+    expect(
+      [1, 2, 3, 4, 5, 6].map((n) => stripeForRound(stripes, n).colorName),
+    ).toEqual(["Cream", "Cream", "Rose", "Cream", "Cream", "Rose"]);
+  });
+
+  it("writes jogless changes and tags each round with its yarn", () => {
+    const steps = calculateSpiralShape(
+      shape({
+        type: "cylinder",
+        maxDiameterInches: 2,
+        heightInches: 2,
+        stripes,
+      }),
+      gauge,
+    );
+    const rounds = steps.filter((s) => s.label.startsWith("Rnd"));
+    expect(rounds[0].instructionText).toMatch(/^With Cream: /);
+    expect(rounds[1].instructionText).toContain("Finish the last st with Rose");
+    expect(rounds[2].instructionText).toMatch(/^Switch to Rose: /);
+    expect(rounds[2].instructionText).toContain("Jogless");
+    expect(rounds[3].instructionText).toMatch(/^Switch to Cream: /);
+    expect(rounds.map((r) => r.yarnColor?.name).slice(0, 4)).toEqual([
+      "Cream",
+      "Cream",
+      "Rose",
+      "Cream",
+    ]);
+    expect(steps.at(-1)?.yarnColor).toBeUndefined();
+  });
+
+  it("uses a sl st start only when the round begins with a plain sc", () => {
+    const steps = calculateSpiralShape(
+      shape({
+        type: "cylinder",
+        stripes: [
+          { colorName: "A", hex: "#000000", rounds: 1 },
+          { colorName: "B", hex: "#ffffff", rounds: 1 },
+        ],
+      }),
+      gauge,
+    );
+    // Rnd 2 is "inc in each st around"; Rnd 3 is "[sc 1, inc] x6".
+    expect(steps[1].instructionText).not.toContain("sl st");
+    expect(steps[2].instructionText).toContain("sl st in the first st");
+  });
+
+  it("ignores empty sequences", () => {
+    const plain = calculateSpiralShape(shape({}), gauge);
+    const empty = calculateSpiralShape(shape({ stripes: [] }), gauge);
+    expect(empty).toEqual(plain);
+  });
+});
+
+describe("limb attachment", () => {
+  const body = shape({
+    id: "body",
+    name: "Body",
+    type: "cylinder",
+    maxDiameterInches: 2.5,
+    heightInches: 3,
+  });
+  const arm = (id: string, name: string) =>
+    shape({
+      id,
+      name,
+      type: "cylinder",
+      maxDiameterInches: 0.75,
+      heightInches: 2,
+      attachment: { targetPieceId: "body", round: 8, position: "side" },
+    });
+
+  it("places paired side limbs on opposite sides of the same round", () => {
+    const steps = calculateAssembly(
+      [body, arm("l", "Left Arm"), arm("r", "Right Arm")],
+      gauge,
+    );
+    const sts = planSpiralRounds(body, gauge)[7].stitches;
+    expect(steps.map((s) => s.label)).toEqual([
+      "Attach Left Arm",
+      "Attach Right Arm",
+    ]);
+    expect(steps[0].instructionText).toContain(
+      `Rnd 8 (${sts} sts), centered on st ${sts / 4}`,
+    );
+    expect(steps[1].instructionText).toContain(
+      `centered on st ${(3 * sts) / 4}`,
+    );
+    expect(steps[0].stitchCount).toBe(sts);
+  });
+
+  it("handles top/bottom positions and skips missing or self targets", () => {
+    const ear = shape({
+      id: "ear",
+      name: "Ear",
+      attachment: { targetPieceId: "body", round: 99, position: "top" },
+    });
+    const lost = shape({
+      id: "lost",
+      attachment: { targetPieceId: "gone", round: 1, position: "side" },
+    });
+    const self = shape({
+      id: "self",
+      attachment: { targetPieceId: "self", round: 1, position: "side" },
+    });
+    const steps = calculateAssembly([body, ear, lost, self], gauge);
+    expect(steps).toHaveLength(1);
+    expect(steps[0].instructionText).toContain("magic ring of Body (Rnd 1)");
+  });
+
+  it("leaves attached pieces open for sewing", () => {
+    const finish = calculateSpiralShape(arm("l", "Left Arm"), gauge).at(-1);
+    expect(finish?.instructionText).toContain("leave the end open");
   });
 });

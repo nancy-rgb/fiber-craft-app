@@ -2,6 +2,8 @@ import type {
   AmigurumiShape,
   CalculatedInstruction,
   Gauge,
+  SafetyEyePlacement,
+  StripeSegment,
 } from "@/lib/types/project";
 import { assertPositive, assertValidGauge } from "./validation";
 
@@ -101,23 +103,242 @@ function roundText(round: SpiralRound, previous: number): string {
   }
 }
 
+const clamp = (n: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, Math.round(n)));
+
+/** Rounds whose first stitch is a plain sc can start with a jogless sl st. */
+function startsWithSc(round: SpiralRound, previous: number): boolean {
+  switch (round.kind) {
+    case "start":
+      return false;
+    case "straight":
+      return true;
+    case "increase":
+      return previous / 6 - 1 > 0;
+    case "decrease":
+      return previous / 6 - 2 > 0;
+  }
+}
+
+function usableStripes(stripes: StripeSegment[] | null | undefined) {
+  return (stripes ?? [])
+    .filter((s) => s.rounds >= 1)
+    .map((s) => ({ ...s, rounds: Math.floor(s.rounds) }));
+}
+
+/** Stripe for a 1-based round; the sequence repeats from Rnd 1. */
+export function stripeForRound(
+  stripes: StripeSegment[],
+  roundNumber: number,
+): StripeSegment {
+  const cycle = stripes.reduce((sum, s) => sum + s.rounds, 0);
+  let offset = (roundNumber - 1) % cycle;
+  for (const stripe of stripes) {
+    if (offset < stripe.rounds) return stripe;
+    offset -= stripe.rounds;
+  }
+  return stripes[stripes.length - 1];
+}
+
+const sameYarn = (a: StripeSegment, b: StripeSegment) =>
+  a.colorName === b.colorName && a.hex.toLowerCase() === b.hex.toLowerCase();
+
+export interface EyePositions {
+  round: number;
+  roundStitches: number;
+  /** Front-center stitch, opposite a round start kept at center back. */
+  center: number;
+  first: number;
+  second: number;
+  sizeMm: number;
+}
+
+/** Clamps eye inputs to the piece and centers the pair on the front. */
+export function placeEyes(
+  eyes: SafetyEyePlacement,
+  rounds: SpiralRound[],
+): EyePositions {
+  const round = clamp(eyes.eyePlacementRound, 1, rounds.length);
+  const roundStitches = rounds[round - 1].stitches;
+  const distance = clamp(
+    eyes.eyeDistanceStitches,
+    1,
+    Math.max(1, roundStitches - 2),
+  );
+  const center = roundStitches / 2;
+  const first = center - Math.floor(distance / 2);
+  return {
+    round,
+    roundStitches,
+    center,
+    first,
+    second: first + distance,
+    sizeMm: eyes.eyeSizeMm > 0 ? eyes.eyeSizeMm : 9,
+  };
+}
+
+type Step = Omit<CalculatedInstruction, "stepNumber">;
+
+function faceSteps(
+  shape: AmigurumiShape,
+  eyes: EyePositions,
+  rounds: SpiralRound[],
+  stitchCount: number,
+): Step[] {
+  const rnd = (offset: number) => Math.min(rounds.length, eyes.round + offset);
+  const { first, second, center } = eyes;
+  const steps: Step[] = [
+    {
+      label: "Eyes",
+      instructionText: `Push ${eyes.sizeMm} mm safety eyes through the markers on Rnd ${eyes.round} (sts ${first} and ${second}). Check the spacing, then snap the washers on from the inside before stuffing.`,
+      stitchCount,
+    },
+  ];
+  const features = shape.facialFeatures ?? [];
+  if (features.includes("nose")) {
+    steps.push({
+      label: "Nose",
+      instructionText: `Embroider the nose over sts ${center - 1}–${center + 1} on Rnd ${rnd(1)}, centered between the eyes.`,
+      stitchCount,
+    });
+  }
+  if (features.includes("mouth")) {
+    steps.push({
+      label: "Mouth",
+      instructionText: `Embroider a small V mouth centered on st ${center}, from Rnd ${rnd(2)} to Rnd ${rnd(3)}.`,
+      stitchCount,
+    });
+  }
+  if (features.includes("cheeks")) {
+    steps.push({
+      label: "Cheeks",
+      instructionText: `Add blush or pink stitches on Rnd ${rnd(1)}, just outside each eye (around st ${Math.max(1, first - 2)} and st ${Math.min(eyes.roundStitches, second + 2)}).`,
+      stitchCount,
+    });
+  }
+  return steps;
+}
+
 export function calculateSpiralShape(
   shape: AmigurumiShape,
   gauge: Gauge,
 ): CalculatedInstruction[] {
   const rounds = planSpiralRounds(shape, gauge);
-  const instructions: CalculatedInstruction[] = rounds.map((round, i) => ({
-    stepNumber: i + 1,
-    label: `Rnd ${i + 1}`,
-    instructionText: roundText(round, i > 0 ? rounds[i - 1].stitches : 0),
-    stitchCount: round.stitches,
-  }));
-  instructions.push({
-    stepNumber: rounds.length + 1,
+  const stripes = usableStripes(shape.stripes);
+  const colorAt = (n: number) =>
+    stripes.length > 0 ? stripeForRound(stripes, n) : null;
+  const eyes = shape.eyes ? placeEyes(shape.eyes, rounds) : null;
+  const firstDecrease = rounds.findIndex((r) => r.kind === "decrease");
+  // Eyes go in after their round is worked but before the opening closes.
+  const insertEyesAfter = eyes
+    ? Math.max(eyes.round, firstDecrease === -1 ? rounds.length : firstDecrease)
+    : -1;
+
+  const steps: Step[] = [];
+  rounds.forEach((round, i) => {
+    const n = i + 1;
+    const previous = i > 0 ? rounds[i - 1].stitches : 0;
+    let text = roundText(round, previous);
+    const color = colorAt(n);
+    if (color) {
+      const before = n > 1 ? colorAt(n - 1) : null;
+      if (!before) {
+        text = `With ${color.colorName}: ${text}`;
+      } else if (!sameYarn(before, color)) {
+        text = `Switch to ${color.colorName}: ${text}. Jogless: ${
+          startsWithSc(round, previous)
+            ? "sl st in the first st instead of sc (it counts as a st; work into it normally next round)"
+            : "tug the old color's tail snug after the first st"
+        }`;
+      }
+      const after = n < rounds.length ? colorAt(n + 1) : null;
+      if (after && !sameYarn(color, after)) {
+        text += `. Finish the last st with ${after.colorName} (pull it through the final 2 loops)`;
+      }
+    }
+    steps.push({
+      label: `Rnd ${n}`,
+      instructionText: text,
+      stitchCount: round.stitches,
+      ...(color && { yarnColor: { name: color.colorName, hex: color.hex } }),
+    });
+
+    if (eyes && n === eyes.round && n !== insertEyesAfter) {
+      steps.push({
+        label: "Eye markers",
+        instructionText: `Mark the eye spots on Rnd ${n} (${round.stitches} sts): markers in st ${eyes.first} and st ${eyes.second}, ${eyes.second - eyes.first} sts apart, centered on st ${eyes.center} at the front (opposite the round start).`,
+        stitchCount: round.stitches,
+      });
+    }
+    if (eyes && n === insertEyesAfter) {
+      steps.push(...faceSteps(shape, eyes, rounds, round.stitches));
+    }
+  });
+
+  steps.push({
     label: "Finish",
-    instructionText:
-      "Stuff firmly before the opening gets small. Fasten off and weave the tail through the front loops of the last 6 sts; pull closed.",
+    instructionText: shape.attachment
+      ? "Stuff lightly (small limbs can stay unstuffed). Fasten off, leaving a long tail for sewing; leave the end open."
+      : "Stuff firmly before the opening gets small. Fasten off and weave the tail through the front loops of the last 6 sts; pull closed.",
     stitchCount: rounds[rounds.length - 1].stitches,
   });
-  return instructions;
+  return steps.map((step, i) => ({ ...step, stepNumber: i + 1 }));
+}
+
+/**
+ * Sewing steps for pieces attached to other pieces. Stitch positions count
+ * from a round start kept at center back. Side pieces on the same target
+ * alternate between opposite sides.
+ */
+export function calculateAssembly(
+  shapes: AmigurumiShape[],
+  gauge: Gauge,
+  nameOf: (shape: AmigurumiShape, index: number) => string = (s) => s.name,
+): CalculatedInstruction[] {
+  const sideCounts = new Map<string, number>();
+  const steps: Step[] = [];
+  shapes.forEach((shape, index) => {
+    const attachment = shape.attachment;
+    if (!attachment || attachment.targetPieceId === shape.id) return;
+    const targetIndex = shapes.findIndex(
+      (s) => s.id === attachment.targetPieceId,
+    );
+    if (targetIndex === -1) return;
+    const target = shapes[targetIndex];
+    const name = nameOf(shape, index);
+    const targetName = nameOf(target, targetIndex);
+    const rounds = planSpiralRounds(target, gauge);
+    const round = clamp(attachment.round, 1, rounds.length);
+    const sts = rounds[round - 1].stitches;
+    let where: string;
+    switch (attachment.position) {
+      case "top":
+        where = `centered over the magic ring of ${targetName} (Rnd 1)`;
+        break;
+      case "bottom":
+        where = `centered on the last round of ${targetName} (Rnd ${rounds.length})`;
+        break;
+      case "front":
+        where = `on the front of ${targetName}, Rnd ${round} (${sts} sts), centered on st ${sts / 2}`;
+        break;
+      case "back":
+        where = `on the back of ${targetName}, Rnd ${round} (${sts} sts), centered on st 1 (the round start)`;
+        break;
+      case "side": {
+        const key = `${target.id}:${round}`;
+        const count = sideCounts.get(key) ?? 0;
+        sideCounts.set(key, count + 1);
+        const st = count % 2 === 0 ? sts / 4 : (3 * sts) / 4;
+        const other = count % 2 === 0 ? (3 * sts) / 4 : sts / 4;
+        where = `on the side of ${targetName}, Rnd ${round} (${sts} sts), centered on st ${st} (the opposite side is st ${other})`;
+        break;
+      }
+    }
+    steps.push({
+      label: `Attach ${name}`,
+      instructionText: `Pin ${name} ${where}. Sew around its open edge with the yarn tail.`,
+      stitchCount: sts,
+    });
+  });
+  return steps.map((step, i) => ({ ...step, stepNumber: i + 1 }));
 }
