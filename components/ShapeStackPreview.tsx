@@ -119,10 +119,11 @@ export function ShapeStackPreview({
         if (seen > 2) yPos += h * 0.15 * Math.floor(seen / 2);
         break;
       case "bottom":
-        // Legs: alternate left/right, extras stagger inward.
+        // Legs: tuck under the target's left/right sides so a pair
+        // doesn't overlap itself, extras stagger upward.
         yPos = ty + th - GAP;
-        x = tx - w / 2 + (seen % 2 === 1 ? -w * 0.35 : w * 0.35);
-        if (seen > 2) yPos -= h * 0.5;
+        x = tx - w / 2 + (seen % 2 === 1 ? -target.w * 0.28 : target.w * 0.28);
+        if (seen > 2) yPos -= h * 0.4;
         break;
       case "side":
         // Arms: alternate left/right at the attach round; a second pair

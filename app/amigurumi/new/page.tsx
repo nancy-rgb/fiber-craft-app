@@ -606,7 +606,9 @@ export default function NewAmigurumiPage() {
           },
         ];
     setShapes((prev) => [...prev, ...pieces]);
-    setSelectedId(pieces[0].id);
+    // Keep the target selected: quick-adding again should attach to the
+    // same piece, not to the limb that was just added.
+    setSelectedId(target.id);
   };
 
   const update = (id: string, patch: Partial<AmigurumiShape>) =>
