@@ -102,21 +102,31 @@ const POSITION_LABEL: Record<AttachmentPosition, string> = {
   back: "back",
 };
 
-/** Quick-add presets: a pre-sized piece already attached in position. */
+/** Quick-add presets: pre-sized pieces already attached in position.
+ *  Paired presets (ears/arms/legs) create Left + Right in one tap. */
 const QUICK_ADDS: {
   label: string;
   type: AmigurumiShapeType;
   position: AttachmentPosition;
   diameter: number;
   height: number;
+  pair?: boolean;
 }[] = [
-  { label: "Ear", type: "cone", position: "top", diameter: 1.25, height: 1.5 },
+  {
+    label: "Ear",
+    type: "cone",
+    position: "top",
+    diameter: 1.25,
+    height: 1.5,
+    pair: true,
+  },
   {
     label: "Arm",
     type: "cylinder",
     position: "side",
     diameter: 0.9,
     height: 1.75,
+    pair: true,
   },
   {
     label: "Leg",
@@ -124,6 +134,7 @@ const QUICK_ADDS: {
     position: "bottom",
     diameter: 1,
     height: 1.25,
+    pair: true,
   },
   {
     label: "Tail",
@@ -278,7 +289,18 @@ function PieceExtras({
 
   return (
     <div className="flex flex-col gap-1 border-t border-border pt-2">
-      <Toggle label="Safety eyes" checked={!!eyes} onChange={toggleEyes} />
+      <div className="grid grid-cols-2">
+        <Toggle label="Safety eyes" checked={!!eyes} onChange={toggleEyes} />
+        <Toggle
+          label="Stripes"
+          checked={!!stripes}
+          onChange={(on) =>
+            onChange({
+              stripes: on ? DEFAULT_STRIPES.map((s) => ({ ...s })) : null,
+            })
+          }
+        />
+      </div>
       {eyes && (
         <div className="flex flex-col gap-3 rounded-lg bg-oat/50 p-3">
           <div className="grid grid-cols-3 gap-2">
@@ -347,15 +369,6 @@ function PieceExtras({
         </div>
       )}
 
-      <Toggle
-        label="Stripes"
-        checked={!!stripes}
-        onChange={(on) =>
-          onChange({
-            stripes: on ? DEFAULT_STRIPES.map((s) => ({ ...s })) : null,
-          })
-        }
-      />
       {stripes && (
         <div className="flex flex-col gap-2 rounded-lg bg-oat/50 p-3">
           <p className="text-xs text-muted">
@@ -428,72 +441,61 @@ function PieceExtras({
         </div>
       )}
 
-      {others.length > 0 && (
-        <>
-          <Toggle
-            label="Attach to another piece"
-            checked={!!attachment}
-            onChange={(on) =>
-              on ? attachTo(others[0].shape.id) : onChange({ attachment: null })
-            }
-          />
-          {attachment && (
-            <div className="grid grid-cols-2 gap-2 rounded-lg bg-oat/50 p-3">
-              <label className="col-span-2 flex flex-col gap-1 text-sm font-medium">
-                Attach to
-                <select
-                  value={attachment.targetPieceId}
-                  onChange={(e) => attachTo(e.target.value)}
-                  className="min-h-11 rounded-lg border border-control bg-card px-2 text-base"
-                >
-                  {others.map((o) => (
-                    <option key={o.shape.id} value={o.shape.id}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex min-w-0 flex-col gap-1 text-sm font-medium">
-                Position
-                <select
-                  value={attachment.position}
-                  onChange={(e) =>
-                    onChange({
-                      attachment: {
-                        ...attachment,
-                        position: e.target.value as AttachmentPosition,
-                      },
-                    })
-                  }
-                  className="min-h-11 min-w-0 rounded-lg border border-control bg-card px-2 text-base"
-                >
-                  {POSITIONS.map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {attachment.position !== "top" &&
-                attachment.position !== "bottom" && (
-                  <IntField
-                    id={`${shape.id}-attach-round`}
-                    label="On round"
-                    value={attachment.round}
-                    max={targetRounds?.length ?? 99}
-                    onChange={(round) =>
-                      onChange({ attachment: { ...attachment, round } })
-                    }
-                  />
-                )}
-              {target && targetRounds && (
-                <p className="col-span-2 text-xs text-muted">
-                  {target.label} has {targetRounds.length} rounds.
-                </p>
-              )}
-            </div>
+      {attachment && others.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 rounded-lg bg-oat/50 p-3">
+          <label className="col-span-2 flex flex-col gap-1 text-sm font-medium">
+            Attach to
+            <select
+              value={attachment.targetPieceId}
+              onChange={(e) => attachTo(e.target.value)}
+              className="min-h-11 rounded-lg border border-control bg-card px-2 text-base"
+            >
+              {others.map((o) => (
+                <option key={o.shape.id} value={o.shape.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex min-w-0 flex-col gap-1 text-sm font-medium">
+            Position
+            <select
+              value={attachment.position}
+              onChange={(e) =>
+                onChange({
+                  attachment: {
+                    ...attachment,
+                    position: e.target.value as AttachmentPosition,
+                  },
+                })
+              }
+              className="min-h-11 min-w-0 rounded-lg border border-control bg-card px-2 text-base"
+            >
+              {POSITIONS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {attachment.position !== "top" &&
+            attachment.position !== "bottom" && (
+              <IntField
+                id={`${shape.id}-attach-round`}
+                label="On round"
+                value={attachment.round}
+                max={targetRounds?.length ?? 99}
+                onChange={(round) =>
+                  onChange({ attachment: { ...attachment, round } })
+                }
+              />
+            )}
+          {target && targetRounds && (
+            <p className="col-span-2 text-xs text-muted">
+              {target.label} has {targetRounds.length} rounds.
+            </p>
           )}
-        </>
+        </div>
       )}
     </div>
   );
@@ -565,22 +567,39 @@ export default function NewAmigurumiPage() {
     preset: (typeof QUICK_ADDS)[number],
   ) => {
     const targetRounds = safeRounds(target, gauge);
-    // Ear, Ear 2, Ear 3… so paired limbs read distinctly.
-    const sameName = shapes.filter(
-      (s) => s.name === preset.label || s.name.startsWith(`${preset.label} `),
-    ).length;
-    const name =
-      sameName === 0 ? preset.label : `${preset.label} ${sameName + 1}`;
-    const piece: AmigurumiShape = {
-      ...newShape(preset.type, name, preset.diameter, preset.height),
-      attachment: {
-        targetPieceId: target.id,
-        round: targetRounds ? Math.ceil(targetRounds.length / 2) : 4,
-        position: preset.position,
-      },
+    const count = shapes.filter((s) => s.name.includes(preset.label)).length;
+    const attach = {
+      targetPieceId: target.id,
+      round: targetRounds ? Math.ceil(targetRounds.length / 2) : 4,
+      position: preset.position,
     };
-    setShapes((prev) => [...prev, piece]);
-    setSelectedId(piece.id);
+    // Paired pieces (ears/arms/legs) come out Left + Right in one tap;
+    // the preview draws the first of each position on the left.
+    const pieces: AmigurumiShape[] = preset.pair
+      ? (["Left", "Right"] as const).map((side) => ({
+          ...newShape(
+            preset.type,
+            `${side} ${preset.label}${count >= 2 ? ` ${Math.floor(count / 2) + 1}` : ""}`,
+            preset.diameter,
+            preset.height,
+          ),
+          attachment: { ...attach },
+        }))
+      : [
+          {
+            ...newShape(
+              preset.type,
+              count === 0 ? preset.label : `${preset.label} ${count + 1}`,
+              preset.diameter,
+              preset.height,
+            ),
+            attachment: { ...attach },
+          },
+        ];
+    setShapes((prev) => [...prev, ...pieces]);
+    // Keep the target selected: quick-adding again should attach to the
+    // same piece, not to the limb that was just added.
+    setSelectedId(target.id);
   };
 
   const update = (id: string, patch: Partial<AmigurumiShape>) =>
@@ -689,8 +708,8 @@ export default function NewAmigurumiPage() {
           }
         />
         <p className="mt-1 text-center text-xs text-muted">
-          Drag an attached piece up or down on its target to change where it
-          sews on.
+          Drag arms, tails and snouts up or down on their target to change where
+          they sew on. Ears and legs stay put.
         </p>
         {shapes.length === 0 && (
           <p className="text-center text-sm text-muted">Add a piece below.</p>
@@ -820,9 +839,10 @@ export default function NewAmigurumiPage() {
                     key={preset.label}
                     type="button"
                     onClick={() => quickAdd(selected, preset)}
+                    aria-label={`Add ${preset.pair ? `a pair of ${preset.label.toLowerCase()}s` : `a ${preset.label.toLowerCase()}`} to ${pieceName(selected, selectedIndex)}`}
                     className="min-h-11 rounded-full border border-dashed border-control px-3 text-sm font-medium"
                   >
-                    + {preset.label}
+                    + {preset.pair ? `${preset.label}s` : preset.label}
                     <span className="ml-1 text-muted">
                       ({POSITION_LABEL[preset.position]})
                     </span>
