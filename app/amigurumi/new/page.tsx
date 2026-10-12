@@ -102,21 +102,31 @@ const POSITION_LABEL: Record<AttachmentPosition, string> = {
   back: "back",
 };
 
-/** Quick-add presets: a pre-sized piece already attached in position. */
+/** Quick-add presets: pre-sized pieces already attached in position.
+ *  Paired presets (ears/arms/legs) create Left + Right in one tap. */
 const QUICK_ADDS: {
   label: string;
   type: AmigurumiShapeType;
   position: AttachmentPosition;
   diameter: number;
   height: number;
+  pair?: boolean;
 }[] = [
-  { label: "Ear", type: "cone", position: "top", diameter: 1.25, height: 1.5 },
+  {
+    label: "Ear",
+    type: "cone",
+    position: "top",
+    diameter: 1.25,
+    height: 1.5,
+    pair: true,
+  },
   {
     label: "Arm",
     type: "cylinder",
     position: "side",
     diameter: 0.9,
     height: 1.75,
+    pair: true,
   },
   {
     label: "Leg",
@@ -124,6 +134,7 @@ const QUICK_ADDS: {
     position: "bottom",
     diameter: 1,
     height: 1.25,
+    pair: true,
   },
   {
     label: "Tail",
@@ -565,22 +576,37 @@ export default function NewAmigurumiPage() {
     preset: (typeof QUICK_ADDS)[number],
   ) => {
     const targetRounds = safeRounds(target, gauge);
-    // Ear, Ear 2, Ear 3… so paired limbs read distinctly.
-    const sameName = shapes.filter(
-      (s) => s.name === preset.label || s.name.startsWith(`${preset.label} `),
-    ).length;
-    const name =
-      sameName === 0 ? preset.label : `${preset.label} ${sameName + 1}`;
-    const piece: AmigurumiShape = {
-      ...newShape(preset.type, name, preset.diameter, preset.height),
-      attachment: {
-        targetPieceId: target.id,
-        round: targetRounds ? Math.ceil(targetRounds.length / 2) : 4,
-        position: preset.position,
-      },
+    const count = shapes.filter((s) => s.name.includes(preset.label)).length;
+    const attach = {
+      targetPieceId: target.id,
+      round: targetRounds ? Math.ceil(targetRounds.length / 2) : 4,
+      position: preset.position,
     };
-    setShapes((prev) => [...prev, piece]);
-    setSelectedId(piece.id);
+    // Paired pieces (ears/arms/legs) come out Left + Right in one tap;
+    // the preview draws the first of each position on the left.
+    const pieces: AmigurumiShape[] = preset.pair
+      ? (["Left", "Right"] as const).map((side) => ({
+          ...newShape(
+            preset.type,
+            `${side} ${preset.label}${count >= 2 ? ` ${Math.floor(count / 2) + 1}` : ""}`,
+            preset.diameter,
+            preset.height,
+          ),
+          attachment: { ...attach },
+        }))
+      : [
+          {
+            ...newShape(
+              preset.type,
+              count === 0 ? preset.label : `${preset.label} ${count + 1}`,
+              preset.diameter,
+              preset.height,
+            ),
+            attachment: { ...attach },
+          },
+        ];
+    setShapes((prev) => [...prev, ...pieces]);
+    setSelectedId(pieces[0].id);
   };
 
   const update = (id: string, patch: Partial<AmigurumiShape>) =>
@@ -689,8 +715,8 @@ export default function NewAmigurumiPage() {
           }
         />
         <p className="mt-1 text-center text-xs text-muted">
-          Drag an attached piece up or down on its target to change where it
-          sews on.
+          Drag arms, tails and snouts up or down on their target to change where
+          they sew on. Ears and legs stay put.
         </p>
         {shapes.length === 0 && (
           <p className="text-center text-sm text-muted">Add a piece below.</p>
@@ -820,9 +846,10 @@ export default function NewAmigurumiPage() {
                     key={preset.label}
                     type="button"
                     onClick={() => quickAdd(selected, preset)}
+                    aria-label={`Add ${preset.pair ? `a pair of ${preset.label.toLowerCase()}s` : `a ${preset.label.toLowerCase()}`} to ${pieceName(selected, selectedIndex)}`}
                     className="min-h-11 rounded-full border border-dashed border-control px-3 text-sm font-medium"
                   >
-                    + {preset.label}
+                    + {preset.pair ? `${preset.label}s` : preset.label}
                     <span className="ml-1 text-muted">
                       ({POSITION_LABEL[preset.position]})
                     </span>
