@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { ColorworkChart } from "@/components/ColorworkChart";
 import { Segmented } from "@/components/forms/Segmented";
 import { GarmentPreview } from "@/components/GarmentPreview";
+import { HatPreview } from "@/components/HatPreview";
 import { ShapeStackPreview } from "@/components/ShapeStackPreview";
 import {
   cellAspect,
@@ -32,6 +33,10 @@ function Preview({ project }: { project: Project }) {
         activeIndex={activePieceIndex(project.instructions, index)}
       />
     );
+  }
+  if (project.category === "hat") {
+    if (!project.hatData) return null;
+    return <HatPreview inputs={project.hatData} />;
   }
   if (!project.garmentData) return null;
   try {
