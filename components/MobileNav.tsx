@@ -1,5 +1,6 @@
 "use client";
 
+import { Camera } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -29,13 +30,9 @@ const tabs = [
   },
   {
     href: "/colorwork/new",
-    label: "New Colorwork",
-    icon: (
-      <>
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
-      </>
-    ),
+    label: "Photo to Pattern",
+    icon: null,
+    Icon: Camera,
   },
 ];
 
@@ -60,18 +57,34 @@ export function MobileNav() {
                   active ? "text-accent" : "text-muted"
                 }`}
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="size-6"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.8}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  {tab.icon}
-                </svg>
+                {tab.Icon ? (
+                  <span
+                    className={`flex size-8 items-center justify-center rounded-full ${
+                      active
+                        ? "bg-accent text-accent-foreground"
+                        : "bg-accent/15 text-accent"
+                    }`}
+                  >
+                    <tab.Icon
+                      className="size-5"
+                      strokeWidth={1.8}
+                      aria-hidden
+                    />
+                  </span>
+                ) : (
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="size-6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    {tab.icon}
+                  </svg>
+                )}
                 <span className="text-center leading-tight">{tab.label}</span>
               </Link>
             </li>

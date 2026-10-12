@@ -1,5 +1,6 @@
 "use client";
 
+import { Camera, Images } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ColorworkChart } from "@/components/ColorworkChart";
@@ -132,7 +133,7 @@ export default function NewColorworkPage() {
   );
   const [activeColor, setActiveColor] = useState(COLOR_IDS[1]);
   const [tool, setTool] = useState<Tool>("brush");
-  const [tab, setTab] = useState<Tab>("draw");
+  const [tab, setTab] = useState<Tab>("image");
   const [width, setWidth] = useState(24);
   const [height, setHeight] = useState(20);
   const [cells, setCells] = useState(() => createGrid(24, 20, COLOR_IDS[0]));
@@ -424,15 +425,35 @@ export default function NewColorworkPage() {
           title="Image to chart"
           description="Each square becomes the closest yarn color. Switch to Draw to touch it up."
         >
-          <label className="flex min-h-11 cursor-pointer items-center justify-center rounded-lg bg-accent px-3 text-sm font-semibold text-accent-foreground">
-            {image ? "Choose a different image" : "Upload an image"}
-            <input
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              onChange={(e) => upload(e.target.files?.[0])}
-            />
-          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-3 text-sm font-semibold text-accent-foreground">
+              <Camera className="size-5" aria-hidden />
+              Take Photo
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                onChange={(e) => {
+                  upload(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <label className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-accent px-3 text-sm font-semibold text-accent">
+              <Images className="size-5" aria-hidden />
+              Choose from Library
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => {
+                  upload(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </div>
           {imageError && (
             <p role="alert" className="text-sm text-accent">
               {imageError}

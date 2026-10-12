@@ -1,5 +1,6 @@
 "use client";
 
+import { Camera } from "lucide-react";
 import Link from "next/link";
 import { useProjectStore } from "@/lib/store/useProjectStore";
 import type { NewProject } from "@/lib/types/project";
@@ -67,6 +68,19 @@ export default function Dashboard() {
           Your projects are saved on this device and work offline.
         </p>
       </section>
+
+      <Link
+        href="/colorwork/new"
+        className="flex items-center gap-4 rounded-2xl bg-apricot/60 p-4 active:bg-apricot"
+      >
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
+          <Camera className="size-6" aria-hidden />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-semibold">Turn Photo into Chart</span>
+          <span className="block text-sm">Take a photo or upload an image</span>
+        </span>
+      </Link>
 
       {!hasHydrated ? (
         <p className="text-sm text-muted">Loading…</p>
