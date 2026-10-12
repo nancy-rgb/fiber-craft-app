@@ -14,6 +14,7 @@ import {
   type GaugeUnit,
 } from "@/lib/gaugeUnits";
 import {
+  calculateAssembly,
   calculateSpiralShape,
   maxStitchesForDiameter,
   planSpiralRounds,
@@ -23,8 +24,11 @@ import { useProjectStore } from "@/lib/store/useProjectStore";
 import type {
   AmigurumiShape,
   AmigurumiShapeType,
+  AttachmentPosition,
   CalculatedInstruction,
+  FacialFeature,
   Gauge,
+  StripeSegment,
 } from "@/lib/types/project";
 
 const SHAPE_TYPES: { value: AmigurumiShapeType; label: string }[] = [
@@ -60,7 +64,392 @@ function buildInstructions(
         label: `${pieceName(shape, i)}${PIECE_SEPARATOR}${step.label}`,
       })),
     )
+    .concat(
+      calculateAssembly(shapes, gauge, pieceName).map((step) => ({
+        ...step,
+        label: `Assembly${PIECE_SEPARATOR}${step.label}`,
+      })),
+    )
     .map((step, i) => ({ ...step, stepNumber: i + 1 }));
+}
+
+const DEFAULT_STRIPES: StripeSegment[] = [
+  { colorName: "Cream", hex: "#f7f3eb", rounds: 2 },
+  { colorName: "Rose", hex: "#d7a6a0", rounds: 2 },
+];
+const EXTRA_STRIPE_HEXES = ["#526147", "#f0be98", "#302a26", "#963f2d"];
+const MAX_STRIPES = 6;
+
+const FEATURES: { value: FacialFeature; label: string }[] = [
+  { value: "nose", label: "Nose" },
+  { value: "mouth", label: "Mouth" },
+  { value: "cheeks", label: "Cheeks" },
+];
+
+const POSITIONS: { value: AttachmentPosition; label: string }[] = [
+  { value: "side", label: "Side (arms)" },
+  { value: "top", label: "Top (ears)" },
+  { value: "bottom", label: "Bottom (legs)" },
+  { value: "front", label: "Front (snout)" },
+  { value: "back", label: "Back (tail)" },
+];
+
+function safeRounds(shape: AmigurumiShape, gauge: Gauge | null) {
+  if (!gauge) return null;
+  try {
+    return planSpiralRounds(shape, gauge);
+  } catch {
+    return null;
+  }
+}
+
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex min-h-11 items-center justify-between gap-3 text-sm font-medium">
+      {label}
+      <input
+        type="checkbox"
+        role="switch"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="size-5 accent-[var(--accent)]"
+      />
+    </label>
+  );
+}
+
+function IntField({
+  id,
+  label,
+  value,
+  max,
+  suffix,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: number;
+  max: number;
+  suffix?: string;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      <div className="flex items-center rounded-lg border border-control bg-card focus-within:border-accent">
+        <input
+          id={id}
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={max}
+          step={1}
+          value={value}
+          onChange={(e) => {
+            const n = Math.round(Number(e.target.value));
+            if (e.target.value !== "" && Number.isFinite(n)) {
+              onChange(Math.min(max, Math.max(1, n)));
+            }
+          }}
+          className="min-h-11 w-full min-w-0 bg-transparent px-2 text-base tabular-nums outline-none"
+        />
+        {suffix && (
+          <span className="shrink-0 pr-2 text-xs text-muted">{suffix}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PieceExtras({
+  shape,
+  shapes,
+  gauge,
+  onChange,
+}: {
+  shape: AmigurumiShape;
+  shapes: AmigurumiShape[];
+  gauge: Gauge | null;
+  onChange: (patch: Partial<AmigurumiShape>) => void;
+}) {
+  const rounds = safeRounds(shape, gauge);
+  const others = shapes
+    .map((s, i) => ({ shape: s, label: pieceName(s, i) }))
+    .filter((o) => o.shape.id !== shape.id);
+  const { eyes, stripes, attachment } = shape;
+  const features = shape.facialFeatures ?? [];
+  const eyeRound =
+    eyes && rounds
+      ? Math.min(rounds.length, Math.max(1, eyes.eyePlacementRound))
+      : null;
+  const target = attachment
+    ? others.find((o) => o.shape.id === attachment.targetPieceId)
+    : undefined;
+  const targetRounds = target ? safeRounds(target.shape, gauge) : null;
+
+  const toggleEyes = (on: boolean) => {
+    if (!on) return onChange({ eyes: null, facialFeatures: [] });
+    const round = rounds ? Math.max(1, Math.round(rounds.length * 0.45)) : 6;
+    const sts = rounds?.[round - 1]?.stitches ?? 36;
+    onChange({
+      eyes: {
+        eyeSizeMm: 9,
+        eyePlacementRound: round,
+        eyeDistanceStitches: Math.max(2, Math.round(sts / 6)),
+      },
+    });
+  };
+
+  const attachTo = (targetPieceId: string) => {
+    const t = others.find((o) => o.shape.id === targetPieceId)?.shape;
+    if (!t) return;
+    const tr = safeRounds(t, gauge);
+    onChange({
+      attachment: {
+        targetPieceId,
+        round: tr ? Math.ceil(tr.length / 2) : 4,
+        position: attachment?.position ?? "side",
+      },
+    });
+  };
+
+  const setStripe = (i: number, patch: Partial<StripeSegment>) =>
+    stripes &&
+    onChange({
+      stripes: stripes.map((seg, j) => (j === i ? { ...seg, ...patch } : seg)),
+    });
+
+  return (
+    <div className="flex flex-col gap-1 border-t border-border pt-2">
+      <Toggle label="Safety eyes" checked={!!eyes} onChange={toggleEyes} />
+      {eyes && (
+        <div className="flex flex-col gap-3 rounded-lg bg-oat/50 p-3">
+          <div className="grid grid-cols-3 gap-2">
+            <IntField
+              id={`${shape.id}-eye-size`}
+              label="Size"
+              suffix="mm"
+              value={eyes.eyeSizeMm}
+              max={30}
+              onChange={(eyeSizeMm) =>
+                onChange({ eyes: { ...eyes, eyeSizeMm } })
+              }
+            />
+            <IntField
+              id={`${shape.id}-eye-round`}
+              label="Round"
+              value={eyes.eyePlacementRound}
+              max={rounds?.length ?? 99}
+              onChange={(eyePlacementRound) =>
+                onChange({ eyes: { ...eyes, eyePlacementRound } })
+              }
+            />
+            <IntField
+              id={`${shape.id}-eye-distance`}
+              label="Apart"
+              suffix="sts"
+              value={eyes.eyeDistanceStitches}
+              max={rounds ? Math.max(...rounds.map((r) => r.stitches)) - 2 : 99}
+              onChange={(eyeDistanceStitches) =>
+                onChange({ eyes: { ...eyes, eyeDistanceStitches } })
+              }
+            />
+          </div>
+          {rounds && eyeRound && (
+            <p className="text-xs text-muted">
+              Rnd {eyeRound} of {rounds.length} has{" "}
+              {rounds[eyeRound - 1].stitches} sts. Eyes are centered on the
+              front.
+            </p>
+          )}
+          <fieldset>
+            <legend className="text-sm font-medium">Face details</legend>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {FEATURES.map((f) => (
+                <label
+                  key={f.value}
+                  className="flex min-h-11 items-center gap-2 rounded-lg border border-control bg-card px-3 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={features.includes(f.value)}
+                    onChange={(e) =>
+                      onChange({
+                        facialFeatures: e.target.checked
+                          ? [...features, f.value]
+                          : features.filter((x) => x !== f.value),
+                      })
+                    }
+                    className="size-4 accent-[var(--accent)]"
+                  />
+                  {f.label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+      )}
+
+      <Toggle
+        label="Stripes"
+        checked={!!stripes}
+        onChange={(on) =>
+          onChange({
+            stripes: on ? DEFAULT_STRIPES.map((s) => ({ ...s })) : null,
+          })
+        }
+      />
+      {stripes && (
+        <div className="flex flex-col gap-2 rounded-lg bg-oat/50 p-3">
+          <p className="text-xs text-muted">
+            Repeats from Rnd 1. Color changes are written as jogless.
+          </p>
+          {stripes.map((seg, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                type="color"
+                aria-label={`Stripe ${i + 1} color`}
+                value={seg.hex}
+                onChange={(e) => setStripe(i, { hex: e.target.value })}
+                className="h-11 w-11 shrink-0 cursor-pointer rounded-lg border border-control bg-card p-1"
+              />
+              <input
+                aria-label={`Stripe ${i + 1} yarn name`}
+                value={seg.colorName}
+                onChange={(e) => setStripe(i, { colorName: e.target.value })}
+                className="min-h-11 min-w-0 flex-1 rounded-lg border border-control bg-card px-2 text-base outline-none focus:border-accent"
+              />
+              <input
+                type="number"
+                inputMode="numeric"
+                aria-label={`Stripe ${i + 1} rounds`}
+                min={1}
+                max={50}
+                value={seg.rounds}
+                onChange={(e) => {
+                  const n = Math.round(Number(e.target.value));
+                  if (e.target.value !== "" && n >= 1)
+                    setStripe(i, { rounds: Math.min(50, n) });
+                }}
+                className="min-h-11 w-14 shrink-0 rounded-lg border border-control bg-card px-2 text-base tabular-nums outline-none focus:border-accent"
+              />
+              <button
+                type="button"
+                aria-label={`Remove stripe ${i + 1}`}
+                disabled={stripes.length <= 2}
+                onClick={() =>
+                  onChange({ stripes: stripes.filter((_, j) => j !== i) })
+                }
+                className="min-h-11 min-w-8 shrink-0 text-muted disabled:opacity-30"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {stripes.length < MAX_STRIPES && (
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  stripes: [
+                    ...stripes,
+                    {
+                      colorName: `Color ${stripes.length + 1}`,
+                      hex: EXTRA_STRIPE_HEXES[
+                        (stripes.length - 2) % EXTRA_STRIPE_HEXES.length
+                      ],
+                      rounds: 2,
+                    },
+                  ],
+                })
+              }
+              className="min-h-11 rounded-lg border border-dashed border-control text-sm font-medium"
+            >
+              + Add stripe color
+            </button>
+          )}
+        </div>
+      )}
+
+      {others.length > 0 && (
+        <>
+          <Toggle
+            label="Attach to another piece"
+            checked={!!attachment}
+            onChange={(on) =>
+              on ? attachTo(others[0].shape.id) : onChange({ attachment: null })
+            }
+          />
+          {attachment && (
+            <div className="grid grid-cols-2 gap-2 rounded-lg bg-oat/50 p-3">
+              <label className="col-span-2 flex flex-col gap-1 text-sm font-medium">
+                Attach to
+                <select
+                  value={attachment.targetPieceId}
+                  onChange={(e) => attachTo(e.target.value)}
+                  className="min-h-11 rounded-lg border border-control bg-card px-2 text-base"
+                >
+                  {others.map((o) => (
+                    <option key={o.shape.id} value={o.shape.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex min-w-0 flex-col gap-1 text-sm font-medium">
+                Position
+                <select
+                  value={attachment.position}
+                  onChange={(e) =>
+                    onChange({
+                      attachment: {
+                        ...attachment,
+                        position: e.target.value as AttachmentPosition,
+                      },
+                    })
+                  }
+                  className="min-h-11 min-w-0 rounded-lg border border-control bg-card px-2 text-base"
+                >
+                  {POSITIONS.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {attachment.position !== "top" &&
+                attachment.position !== "bottom" && (
+                  <IntField
+                    id={`${shape.id}-attach-round`}
+                    label="On round"
+                    value={attachment.round}
+                    max={targetRounds?.length ?? 99}
+                    onChange={(round) =>
+                      onChange({ attachment: { ...attachment, round } })
+                    }
+                  />
+                )}
+              {target && targetRounds && (
+                <p className="col-span-2 text-xs text-muted">
+                  {target.label} has {targetRounds.length} rounds.
+                </p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 }
 
 function Slider({
@@ -282,6 +671,12 @@ export default function NewAmigurumiPage() {
                   }
                 />
               )}
+              <PieceExtras
+                shape={shape}
+                shapes={shapes}
+                gauge={gauge}
+                onChange={(patch) => update(shape.id, patch)}
+              />
               <div className="flex items-center justify-between gap-2 text-sm">
                 <span className="text-muted">{summary}</span>
                 <div className="flex gap-1">
@@ -295,7 +690,15 @@ export default function NewAmigurumiPage() {
                   <button
                     type="button"
                     onClick={() =>
-                      setShapes((prev) => prev.filter((s) => s.id !== shape.id))
+                      setShapes((prev) =>
+                        prev
+                          .filter((s) => s.id !== shape.id)
+                          .map((s) =>
+                            s.attachment?.targetPieceId === shape.id
+                              ? { ...s, attachment: null }
+                              : s,
+                          ),
+                      )
                     }
                     className="min-h-11 rounded-lg px-3 text-muted active:bg-border"
                   >

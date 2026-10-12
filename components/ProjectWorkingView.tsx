@@ -150,6 +150,13 @@ export function ProjectWorkingView() {
                 {isDone ? "✓" : ""}
               </span>
               <span className={isDone ? "line-through" : ""}>
+                {instruction.yarnColor && (
+                  <span
+                    aria-hidden
+                    className="mr-1.5 inline-block size-3 rounded-full border border-border align-middle"
+                    style={{ backgroundColor: instruction.yarnColor.hex }}
+                  />
+                )}
                 <span className="font-medium">{instruction.label}:</span>{" "}
                 {instruction.instructionText}
               </span>
@@ -180,7 +187,20 @@ export function ProjectWorkingView() {
           <p className="mt-1 text-xl font-semibold leading-snug">
             {step.instructionText}
           </p>
-          <p className="mt-1 text-sm text-muted">{step.stitchCount} sts</p>
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
+            {step.stitchCount} sts
+            {step.yarnColor && (
+              <>
+                {" · "}
+                <span
+                  aria-hidden
+                  className="inline-block size-3.5 rounded-full border border-border"
+                  style={{ backgroundColor: step.yarnColor.hex }}
+                />
+                {step.yarnColor.name}
+              </>
+            )}
+          </p>
           {colorwork && abbreviations && (
             <>
               <ul

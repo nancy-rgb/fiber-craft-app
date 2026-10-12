@@ -18,12 +18,42 @@ export interface GarmentInputs {
 
 export type AmigurumiShapeType = "sphere" | "cylinder" | "cone";
 
+export interface SafetyEyePlacement {
+  eyeSizeMm: number;
+  /** 1-based round the eyes sit on, counted from the magic ring. */
+  eyePlacementRound: number;
+  /** Stitches between the two eye posts. */
+  eyeDistanceStitches: number;
+}
+
+export type FacialFeature = "nose" | "mouth" | "cheeks";
+
+/** One band of a stripe sequence; the sequence repeats from Rnd 1. */
+export interface StripeSegment {
+  colorName: string;
+  hex: string;
+  rounds: number;
+}
+
+export type AttachmentPosition = "side" | "front" | "back" | "top" | "bottom";
+
+export interface LimbAttachment {
+  targetPieceId: string;
+  /** Round on the target piece; ignored for "top" and "bottom". */
+  round: number;
+  position: AttachmentPosition;
+}
+
 export interface AmigurumiShape {
   id: string;
   type: AmigurumiShapeType;
   name: string;
   maxDiameterInches: number;
   heightInches: number;
+  eyes?: SafetyEyePlacement | null;
+  facialFeatures?: FacialFeature[];
+  stripes?: StripeSegment[] | null;
+  attachment?: LimbAttachment | null;
 }
 
 export interface YarnColor {
@@ -46,6 +76,8 @@ export interface CalculatedInstruction {
   label: string;
   instructionText: string;
   stitchCount: number;
+  /** Yarn color for this step, e.g. the current stripe. */
+  yarnColor?: { name: string; hex: string };
 }
 
 export interface Project {
