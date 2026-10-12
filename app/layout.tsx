@@ -4,6 +4,7 @@ import Link from "next/link";
 import { InstallIntro } from "@/components/InstallIntro";
 import { MobileNav } from "@/components/MobileNav";
 import { StoreHydrator } from "@/components/StoreHydrator";
+import { UpdateToast } from "@/components/UpdateToast";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -65,6 +66,7 @@ export default function RootLayout({
         </div>
         <MobileNav />
         <InstallIntro />
+        <UpdateToast />
       </body>
     </html>
   );
