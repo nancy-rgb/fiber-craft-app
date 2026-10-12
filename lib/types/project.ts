@@ -16,7 +16,17 @@ export interface GarmentInputs {
   easeInches: number;
 }
 
-export type AmigurumiShapeType = "sphere" | "cylinder" | "cone";
+export type AmigurumiShapeType =
+  | "sphere"
+  | "cylinder"
+  | "cone"
+  | "oval"
+  | "curved-tube"
+  | "teardrop"
+  | "flat-triangle"
+  | "trumpet";
+
+export type CurvatureIntensity = "slight" | "medium" | "sharp";
 
 export type HatBrimStyle = "none" | "single" | "folded";
 export type HatRibbing = "1x1" | "2x2" | "garter";
@@ -65,6 +75,12 @@ export interface AmigurumiShape {
   name: string;
   maxDiameterInches: number;
   heightInches: number;
+  /** Oval: foundation chain length worked around both sides. */
+  chainLength?: number;
+  /** Curved tube: how tightly it bends. */
+  curvatureIntensity?: CurvatureIntensity;
+  /** Flat pieces worked in turned rows (ears, fins). */
+  isFlat?: boolean;
   eyes?: SafetyEyePlacement | null;
   facialFeatures?: FacialFeature[];
   stripes?: StripeSegment[] | null;

@@ -205,6 +205,52 @@ export function ShapeStackPreview({
             {...common}
           />
         );
+      case "oval":
+        return (
+          <ellipse
+            cx={bcx}
+            cy={by + b.h / 2}
+            rx={b.w / 2}
+            ry={Math.min(b.h, b.w * 0.6) / 2}
+            {...common}
+          />
+        );
+      case "curved-tube":
+        // Thick arc stroke reads as a bent tail/horn.
+        return (
+          <path
+            d={`M ${bx + b.w * 0.15} ${by + b.h * 0.95} A ${b.h * 0.9} ${b.h * 0.9} 0 0 1 ${bx + b.w * 0.85} ${by + b.h * 0.05}`}
+            fill="none"
+            strokeLinecap="round"
+            strokeWidth={Math.max(8, b.w * 0.4)}
+            className={dimmed ? "stroke-muted" : "stroke-accent"}
+            opacity={dimmed ? 0.5 : 0.8}
+          />
+        );
+      case "teardrop":
+        return (
+          <path
+            d={`M ${bcx} ${by} C ${bx + b.w} ${by + b.h * 0.35} ${bx + b.w * 0.85} ${by + b.h} ${bcx} ${by + b.h} C ${bx + b.w * 0.15} ${by + b.h} ${bx} ${by + b.h * 0.35} ${bcx} ${by} Z`}
+            strokeLinejoin="round"
+            {...common}
+          />
+        );
+      case "flat-triangle":
+        return (
+          <path
+            d={`M ${bcx} ${by} L ${bx + b.w} ${by + b.h} L ${bx} ${by + b.h} Z M ${bx + b.w * 0.15} ${by + b.h * 0.8} L ${bx + b.w * 0.85} ${by + b.h * 0.8}`}
+            strokeLinejoin="round"
+            {...common}
+          />
+        );
+      case "trumpet":
+        return (
+          <path
+            d={`M ${bcx - b.w * 0.2} ${by + b.h} L ${bcx - b.w * 0.28} ${by + b.h * 0.35} L ${bx} ${by} L ${bx + b.w} ${by} L ${bcx + b.w * 0.28} ${by + b.h * 0.35} L ${bcx + b.w * 0.2} ${by + b.h} Z`}
+            strokeLinejoin="round"
+            {...common}
+          />
+        );
     }
   };
 
