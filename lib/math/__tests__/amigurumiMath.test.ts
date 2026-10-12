@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  calculateAmigurumiShape,
   calculateAssembly,
+  calculateCurvedTube,
+  calculateFlatTriangle,
+  calculateOvalShape,
   calculateSpiralShape,
+  calculateTrumpetShape,
   maxStitchesForDiameter,
   placeEyes,
   planSpiralRounds,
@@ -335,5 +340,141 @@ describe("limb attachment", () => {
   it("leaves attached pieces open for sewing", () => {
     const finish = calculateSpiralShape(arm("l", "Left Arm"), gauge).at(-1);
     expect(finish?.instructionText).toContain("leave the end open");
+  });
+});
+
+describe("calculateOvalShape", () => {
+  const oval = shape({
+    type: "oval",
+    maxDiameterInches: 2,
+    heightInches: 1,
+    chainLength: 8,
+  });
+
+  it("starts on a foundation chain worked around both sides", () => {
+    const steps = calculateOvalShape(oval, gauge);
+    expect(steps[0].instructionText).toContain("Ch 9");
+    expect(steps[0].instructionText).toContain("free loops of the chain");
+    expect(steps[0].stitchCount).toBe(20); // 2*8+4
+  });
+
+  it("grows +6 per round with increases only at the ends", () => {
+    const steps = calculateOvalShape(oval, gauge);
+    const incs = steps.filter((s) =>
+      s.instructionText.includes("inc in each of the next 3"),
+    );
+    expect(incs.length).toBeGreaterThan(0);
+    incs.forEach((s, i) => {
+      expect(s.stitchCount).toBe(20 + 6 * (i + 1));
+      expect(s.stitchCount % 6).not.toBe(0); // ovals aren't 6-multiples
+    });
+  });
+
+  it("leaves attached ovals open for sewing", () => {
+    const attached = shape({
+      type: "oval",
+      attachment: { targetPieceId: "b", round: 3, position: "front" },
+    });
+    expect(
+      calculateOvalShape(attached, gauge).at(-1)?.instructionText,
+    ).toContain("leave the end open");
+  });
+});
+
+describe("calculateCurvedTube", () => {
+  const tube = (curvatureIntensity?: "slight" | "medium" | "sharp") =>
+    shape({
+      type: "curved-tube",
+      maxDiameterInches: 1,
+      heightInches: 2,
+      curvatureIntensity,
+    });
+
+  it("emits matched inc/dec curve rounds that keep the stitch count flat", () => {
+    const steps = calculateCurvedTube(tube("medium"), gauge);
+    const curves = steps.filter((s) =>
+      s.instructionText.startsWith("Curve round"),
+    );
+    expect(curves.length).toBeGreaterThan(0);
+    curves.forEach((s) => {
+      expect(s.instructionText).toContain("inc] x2");
+      expect(s.instructionText).toContain("dec, sc");
+      expect(s.stitchCount).toBe(maxStitchesForDiameter(1, gauge));
+    });
+  });
+
+  it("curves more often at sharp intensity and less at slight", () => {
+    const count = (c?: "slight" | "medium" | "sharp") =>
+      calculateCurvedTube(tube(c), gauge).filter((s) =>
+        s.instructionText.startsWith("Curve round"),
+      ).length;
+    expect(count("sharp")).toBeGreaterThan(count("medium"));
+    expect(count("medium")).toBeGreaterThan(count("slight"));
+  });
+});
+
+describe("calculateFlatTriangle", () => {
+  const tri = shape({
+    type: "flat-triangle",
+    maxDiameterInches: 1.5,
+    isFlat: true,
+  });
+
+  it("works turned rows that decrease at both edges to a point", () => {
+    const steps = calculateFlatTriangle(tri, gauge);
+    expect(steps[0].instructionText).toContain("Ch ");
+    const body = steps.slice(1, -1);
+    body.forEach((s, i) => {
+      expect(s.instructionText).toContain("Ch 1, turn");
+      expect(s.stitchCount).toBe(steps[0].stitchCount - 2 * (i + 1));
+    });
+    expect(steps.at(-1)?.stitchCount).toBe(1);
+  });
+});
+
+describe("calculateTrumpetShape", () => {
+  const trumpet = shape({
+    type: "trumpet",
+    maxDiameterInches: 2.5,
+    heightInches: 2,
+  });
+
+  it("builds a slim body then flares to the rim in burst increase rounds", () => {
+    const steps = calculateTrumpetShape(trumpet, gauge);
+    const flares = steps.filter((s) => s.instructionText.startsWith("Flare"));
+    expect(flares.length).toBeGreaterThanOrEqual(1);
+    expect(steps.at(-1)?.instructionText).toContain("Sl st loosely");
+    // Rim reaches the full diameter stitch count.
+    expect(flares.at(-1)?.stitchCount).toBe(maxStitchesForDiameter(2.5, gauge));
+    // Body stays at ~60% before the flare.
+    const firstFlare = steps.indexOf(flares[0]);
+    expect(steps[firstFlare - 1].stitchCount).toBe(
+      maxStitchesForDiameter(1.5, gauge),
+    );
+  });
+});
+
+describe("calculateAmigurumiShape dispatch", () => {
+  it("routes each new type to its calculator and keeps spiral types", () => {
+    expect(
+      calculateAmigurumiShape(shape({ type: "oval" }), gauge)[0]
+        .instructionText,
+    ).toContain("Ch ");
+    expect(
+      calculateAmigurumiShape(shape({ type: "trumpet" }), gauge)[0]
+        .instructionText,
+    ).toContain("Magic ring");
+    expect(
+      calculateAmigurumiShape(shape({ type: "teardrop" }), gauge)[0]
+        .instructionText,
+    ).toContain("Magic ring");
+  });
+
+  it("gives a teardrop a longer straight section than a sphere of the same size", () => {
+    const straight = (type: AmigurumiShape["type"]) =>
+      planSpiralRounds(shape({ type, heightInches: 2 }), gauge).filter(
+        (r) => r.kind === "straight",
+      ).length;
+    expect(straight("teardrop")).toBeGreaterThan(straight("sphere"));
   });
 });

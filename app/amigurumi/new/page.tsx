@@ -14,8 +14,8 @@ import {
   type GaugeUnit,
 } from "@/lib/gaugeUnits";
 import {
+  calculateAmigurumiShape,
   calculateAssembly,
-  calculateSpiralShape,
   maxStitchesForDiameter,
   planSpiralRounds,
 } from "@/lib/math/amigurumiMath";
@@ -26,15 +26,31 @@ import type {
   AmigurumiShapeType,
   AttachmentPosition,
   CalculatedInstruction,
+  CurvatureIntensity,
   FacialFeature,
   Gauge,
   StripeSegment,
 } from "@/lib/types/project";
 
-const SHAPE_TYPES: { value: AmigurumiShapeType; label: string }[] = [
-  { value: "sphere", label: "Sphere" },
-  { value: "cylinder", label: "Cylinder" },
-  { value: "cone", label: "Cone" },
+const SHAPE_TYPES: {
+  value: AmigurumiShapeType;
+  label: string;
+  hint: string;
+}[] = [
+  { value: "sphere", label: "Sphere", hint: "ball" },
+  { value: "cylinder", label: "Cylinder", hint: "tube" },
+  { value: "cone", label: "Cone", hint: "pointed" },
+  { value: "oval", label: "Oval", hint: "snout/paw" },
+  { value: "curved-tube", label: "Curved", hint: "tail/horn" },
+  { value: "teardrop", label: "Teardrop", hint: "body" },
+  { value: "flat-triangle", label: "Flat ear", hint: "triangle" },
+  { value: "trumpet", label: "Trumpet", hint: "flared" },
+];
+
+const CURVE_OPTIONS: { value: CurvatureIntensity; label: string }[] = [
+  { value: "slight", label: "Slight" },
+  { value: "medium", label: "Medium" },
+  { value: "sharp", label: "Sharp" },
 ];
 
 const newShape = (
@@ -48,6 +64,8 @@ const newShape = (
   name,
   maxDiameterInches,
   heightInches,
+  ...(type === "curved-tube" && { curvatureIntensity: "medium" as const }),
+  ...(type === "flat-triangle" && { isFlat: true }),
 });
 
 const pieceName = (shape: AmigurumiShape, index: number) =>
@@ -59,7 +77,7 @@ function buildInstructions(
 ): CalculatedInstruction[] {
   return shapes
     .flatMap((shape, i) =>
-      calculateSpiralShape(shape, gauge).map((step) => ({
+      calculateAmigurumiShape(shape, gauge).map((step) => ({
         ...step,
         label: `${pieceName(shape, i)}${PIECE_SEPARATOR}${step.label}`,
       })),
@@ -114,9 +132,9 @@ const QUICK_ADDS: {
 }[] = [
   {
     label: "Ear",
-    type: "cone",
+    type: "flat-triangle",
     position: "top",
-    diameter: 1.25,
+    diameter: 1.5,
     height: 1.5,
     pair: true,
   },
@@ -138,17 +156,17 @@ const QUICK_ADDS: {
   },
   {
     label: "Tail",
-    type: "sphere",
+    type: "curved-tube",
     position: "back",
     diameter: 0.9,
-    height: 0.9,
+    height: 1.75,
   },
   {
     label: "Snout",
-    type: "sphere",
+    type: "oval",
     position: "front",
-    diameter: 1.25,
-    height: 1,
+    diameter: 1.5,
+    height: 0.75,
   },
 ];
 
@@ -790,12 +808,76 @@ export default function NewAmigurumiPage() {
                 ↓
               </button>
             </div>
-            <Segmented
-              label={`${pieceName(selected, selectedIndex)} shape`}
-              value={selected.type}
-              options={SHAPE_TYPES}
-              onChange={(type) => update(selected.id, { type })}
-            />
+            <div
+              role="radiogroup"
+              aria-label={`${pieceName(selected, selectedIndex)} shape`}
+              className="grid grid-cols-4 gap-1"
+            >
+              {SHAPE_TYPES.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected.type === opt.value}
+                  onClick={() =>
+                    update(selected.id, {
+                      type: opt.value,
+                      ...(opt.value === "curved-tube" && {
+                        curvatureIntensity:
+                          selected.curvatureIntensity ?? "medium",
+                      }),
+                      ...(opt.value === "flat-triangle" && { isFlat: true }),
+                    })
+                  }
+                  className={`flex min-h-11 flex-col items-center justify-center rounded-lg border px-1 py-1.5 text-xs font-medium leading-tight ${
+                    selected.type === opt.value
+                      ? "border-accent bg-accent text-accent-foreground"
+                      : "border-control bg-card text-foreground"
+                  }`}
+                >
+                  {opt.label}
+                  <span
+                    className={`text-[10px] font-normal ${
+                      selected.type === opt.value
+                        ? "text-accent-foreground/80"
+                        : "text-muted"
+                    }`}
+                  >
+                    {opt.hint}
+                  </span>
+                </button>
+              ))}
+            </div>
+            {selected.type === "curved-tube" && (
+              <Segmented
+                label="Curve"
+                value={selected.curvatureIntensity ?? "medium"}
+                options={CURVE_OPTIONS}
+                onChange={(curvatureIntensity) =>
+                  update(selected.id, { curvatureIntensity })
+                }
+              />
+            )}
+            {selected.type === "oval" && (
+              <IntField
+                id={`${selected.id}-chain`}
+                label="Foundation chain"
+                value={
+                  selected.chainLength ??
+                  Math.max(
+                    4,
+                    Math.round(
+                      selected.maxDiameterInches *
+                        (gauge?.stitchesPerInch ?? 5) *
+                        0.5,
+                    ),
+                  )
+                }
+                max={48}
+                suffix="chs"
+                onChange={(chainLength) => update(selected.id, { chainLength })}
+              />
+            )}
             <Slider
               id={`${selected.id}-diameter`}
               label="Widest diameter"
