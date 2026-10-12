@@ -565,8 +565,14 @@ export default function NewAmigurumiPage() {
     preset: (typeof QUICK_ADDS)[number],
   ) => {
     const targetRounds = safeRounds(target, gauge);
+    // Ear, Ear 2, Ear 3… so paired limbs read distinctly.
+    const sameName = shapes.filter(
+      (s) => s.name === preset.label || s.name.startsWith(`${preset.label} `),
+    ).length;
+    const name =
+      sameName === 0 ? preset.label : `${preset.label} ${sameName + 1}`;
     const piece: AmigurumiShape = {
-      ...newShape(preset.type, preset.label, preset.diameter, preset.height),
+      ...newShape(preset.type, name, preset.diameter, preset.height),
       attachment: {
         targetPieceId: target.id,
         round: targetRounds ? Math.ceil(targetRounds.length / 2) : 4,
@@ -671,7 +677,21 @@ export default function NewAmigurumiPage() {
       </Section>
 
       <Section title="Preview">
-        <ShapeStackPreview shapes={shapes} />
+        <ShapeStackPreview
+          shapes={shapes}
+          onAttachmentRound={(id, round) =>
+            update(id, {
+              attachment: {
+                ...shapes.find((s) => s.id === id)!.attachment!,
+                round,
+              },
+            })
+          }
+        />
+        <p className="mt-1 text-center text-xs text-muted">
+          Drag an attached piece up or down on its target to change where it
+          sews on.
+        </p>
         {shapes.length === 0 && (
           <p className="text-center text-sm text-muted">Add a piece below.</p>
         )}

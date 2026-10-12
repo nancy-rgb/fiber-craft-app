@@ -18,18 +18,34 @@ interface Box {
   behind?: boolean;
 }
 
+const roundsOf = (s: AmigurumiShape) => {
+  try {
+    return Math.max(
+      1,
+      planSpiralRounds(s, { stitchesPerInch: 1, rowsPerInch: 1 }).length,
+    );
+  } catch {
+    return 1;
+  }
+};
+
 /**
  * Stacked silhouette preview. Pieces marked "Attach to" are drawn around
  * their target (ears on top, arms on the sides, legs below, tail behind)
  * instead of joining the vertical stack. Safety eyes show as two dots.
+ * When `onAttachmentRound` is given, attached pieces can be dragged
+ * vertically along their target to change the attach round.
  */
 export function ShapeStackPreview({
   shapes,
   activeIndex,
+  onAttachmentRound,
 }: {
   shapes: AmigurumiShape[];
   /** Highlights the piece being worked; others are dimmed. */
   activeIndex?: number;
+  /** Drag callback: (attached shape id, new round on its target). */
+  onAttachmentRound?: (shapeId: string, round: number) => void;
 }) {
   if (shapes.length === 0) return null;
   const maxWidth = Math.max(...shapes.map((s) => s.maxDiameterInches));
@@ -62,7 +78,13 @@ export function ShapeStackPreview({
   });
 
   // Second pass: attached pieces positioned relative to their target.
-  const sideCount = new Map<string, number>();
+  // Count per target+position so siblings spread instead of overlapping.
+  const siblings = new Map<string, number>();
+  // For drag: attached piece → target box + target's round count.
+  const dragInfo = new Map<
+    string,
+    { targetBox: Box; targetRounds: number; position: string }
+  >();
   shapes.forEach((shape, index) => {
     const att = shape.attachment;
     if (!att) return;
@@ -73,59 +95,60 @@ export function ShapeStackPreview({
     const tx = target.x + target.w / 2;
     const ty = target.y;
     const th = target.h;
-    // Attachment round → vertical fraction on the target (top=0, bottom=1).
-    const targetShape = target.shape;
-    let rounds = 1;
-    try {
-      rounds = planSpiralRounds(targetShape, {
-        stitchesPerInch: 1,
-        rowsPerInch: 1,
-      }).length;
-    } catch {
-      rounds = 1;
-    }
+    const targetRounds = roundsOf(target.shape);
     const frac =
       att.position === "top"
         ? 0
         : att.position === "bottom"
           ? 1
-          : Math.min(0.9, Math.max(0.1, att.round / rounds));
+          : Math.min(0.9, Math.max(0.1, att.round / targetRounds));
     const cy = ty + frac * th;
 
-    const seen = (sideCount.get(att.targetPieceId) ?? 0) + 1;
-    sideCount.set(att.targetPieceId, seen);
-    const left = seen % 2 === 1;
+    const key = `${att.targetPieceId}:${att.position}`;
+    const seen = (siblings.get(key) ?? 0) + 1;
+    siblings.set(key, seen);
 
     let x = tx - w / 2;
     let yPos = cy - h / 2;
     let behind = false;
     switch (att.position) {
       case "top":
-        // Paired "ears" spread left/right of the crown.
+        // Ears: first slightly left of crown, second right, extras wider.
         yPos = ty - h + GAP;
-        x = tx - w / 2 + (seen === 2 ? w * 0.55 : -w * 0.25);
+        x = tx - w / 2 + (seen % 2 === 0 ? w * 0.55 : -w * 0.3);
+        if (seen > 2) yPos += h * 0.15 * Math.floor(seen / 2);
         break;
       case "bottom":
+        // Legs: alternate left/right, extras stagger inward.
         yPos = ty + th - GAP;
-        x = tx - w / 2 + (left ? -w * 0.35 : w * 0.35);
+        x = tx - w / 2 + (seen % 2 === 1 ? -w * 0.35 : w * 0.35);
+        if (seen > 2) yPos -= h * 0.5;
         break;
       case "side":
-        x = left ? target.x - w * 0.75 : target.x + target.w - w * 0.25;
-        yPos = cy - h / 2;
+        // Arms: alternate left/right at the attach round; a second pair
+        // drops below so it never hides behind the first.
+        x =
+          seen % 2 === 1 ? target.x - w * 0.75 : target.x + target.w - w * 0.25;
+        yPos = cy - h / 2 + Math.floor((seen - 1) / 2) * h * 0.55;
         break;
       case "front":
-        // Snout etc.: drawn smaller, overlapping the lower front.
+        // Snout etc.: overlapping the lower front.
         yPos = ty + th * 0.55 - h / 2;
         x = tx - w / 2;
         break;
       case "back":
         // Tail: peeks out from behind the right edge.
         x = target.x + target.w - w * 0.35;
-        yPos = cy - h / 2;
+        yPos = cy - h / 2 + (seen - 1) * h * 0.3;
         behind = true;
         break;
     }
     boxes.push({ shape, index, x, y: yPos, w, h, behind });
+    dragInfo.set(shape.id, {
+      targetBox: target,
+      targetRounds,
+      position: att.position,
+    });
   });
 
   // Third pass: normalize so nothing draws outside the viewBox.
@@ -186,12 +209,7 @@ export function ShapeStackPreview({
 
   const eyes = (b: Box) => {
     if (!b.shape.eyes) return null;
-    // Eye dots on the face, at the eye round's height, roughly the
-    // requested distance apart (clamped so they stay on the face).
-    const rounds = Math.max(
-      1,
-      planSpiralRounds(b.shape, { stitchesPerInch: 1, rowsPerInch: 1 }).length,
-    );
+    const rounds = roundsOf(b.shape);
     const frac = Math.min(
       0.85,
       Math.max(0.1, b.shape.eyes.eyePlacementRound / rounds),
@@ -216,6 +234,32 @@ export function ShapeStackPreview({
     a.behind === b.behind ? 0 : a.behind ? -1 : 1,
   );
 
+  const startDrag = (e: React.PointerEvent, b: Box) => {
+    const info = dragInfo.get(b.shape.id);
+    const att = b.shape.attachment;
+    if (!onAttachmentRound || !info || !att) return;
+    e.preventDefault();
+    const target = info.targetBox;
+    const startY = e.clientY;
+    const startRound = att.round;
+    const roundsToPixels = info.targetRounds / target.h;
+    const move = (ev: PointerEvent) => {
+      // SVG units ≈ CSS pixels here (viewBox width ≈ rendered width).
+      const deltaRounds = Math.round((ev.clientY - startY) * roundsToPixels);
+      const next = Math.min(
+        info.targetRounds,
+        Math.max(1, startRound + deltaRounds),
+      );
+      if (next !== startRound) onAttachmentRound(b.shape.id, next);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
   return (
     <svg
       viewBox={`0 0 ${viewW} ${viewH}`}
@@ -223,25 +267,39 @@ export function ShapeStackPreview({
       role="img"
       aria-label={`Preview of ${shapes.map((s) => s.name).join(", ")}`}
     >
-      {ordered.map((b) => (
-        <g key={b.shape.id}>
-          {shapeEl(b)}
-          {eyes(b)}
-          <text
-            x={b.x + dx + b.w / 2}
-            y={b.y + dy + b.h / 2}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            className={`text-[11px] ${
-              activeIndex !== undefined && activeIndex !== b.index
-                ? "fill-muted"
-                : "fill-foreground"
-            }`}
+      {ordered.map((b) => {
+        // Top/bottom attach at fixed points (crown/base), so only
+        // side/front/back pieces respond to a vertical drag.
+        const draggable =
+          !!onAttachmentRound &&
+          !!b.shape.attachment &&
+          b.shape.attachment.position !== "top" &&
+          b.shape.attachment.position !== "bottom";
+        return (
+          <g
+            key={b.shape.id}
+            className={draggable ? "cursor-grab" : undefined}
+            style={draggable ? { touchAction: "none" } : undefined}
+            onPointerDown={draggable ? (e) => startDrag(e, b) : undefined}
           >
-            {b.shape.name}
-          </text>
-        </g>
-      ))}
+            {shapeEl(b)}
+            {eyes(b)}
+            <text
+              x={b.x + dx + b.w / 2}
+              y={b.y + dy + b.h / 2}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className={`pointer-events-none text-[11px] ${
+                activeIndex !== undefined && activeIndex !== b.index
+                  ? "fill-muted"
+                  : "fill-foreground"
+              }`}
+            >
+              {b.shape.name}
+            </text>
+          </g>
+        );
+      })}
     </svg>
   );
 }
