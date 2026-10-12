@@ -272,6 +272,7 @@ export default function NewColorworkPage() {
       category: "colorwork",
       gauge,
       garmentData: null,
+      hatData: null,
       amigurumiShapes: [],
       colorworkData: {
         width: grid[0].length,

@@ -14,6 +14,7 @@ const withSerwist = withSerwistInit({
     "/garments/new",
     "/amigurumi/new",
     "/colorwork/new",
+    "/hats/new",
     `/project/${OFFLINE_SHELL_ID}`,
     "/manifest.webmanifest",
   ].map((url) => ({ url, revision })),

@@ -11,6 +11,7 @@ const sampleProject: NewProject = {
   category: "amigurumi",
   gauge: { stitchesPerInch: 5, rowsPerInch: 5 },
   garmentData: null,
+  hatData: null,
   amigurumiShapes: [
     {
       id: "sample-ball",
@@ -101,8 +102,14 @@ export default function Dashboard() {
               New Amigurumi
             </Link>
             <Link
+              href="/hats/new"
+              className="rounded-lg border-2 border-moss px-3 py-3 font-semibold text-moss"
+            >
+              New Hat
+            </Link>
+            <Link
               href="/colorwork/new"
-              className="col-span-2 rounded-lg border-2 border-moss px-3 py-3 font-semibold text-moss"
+              className="rounded-lg border-2 border-moss px-3 py-3 font-semibold text-moss"
             >
               New Colorwork
             </Link>

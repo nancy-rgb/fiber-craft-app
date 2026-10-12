@@ -87,11 +87,11 @@ export const useProjectStore = create<ProjectState>()(
     }),
     {
       name: "fiber-craft-projects",
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => idbStorage),
       partialize: ({ projects }) => ({ projects }),
       migrate: (persisted, version) => {
-        if (version === 2) {
+        if (version === 2 || version === 3) {
           const { projects } = persisted as {
             projects: Record<string, Project>;
           };
@@ -99,7 +99,7 @@ export const useProjectStore = create<ProjectState>()(
             projects: Object.fromEntries(
               Object.entries(projects).map(([id, p]) => [
                 id,
-                { ...p, colorworkData: null },
+                { ...p, colorworkData: p.colorworkData ?? null, hatData: null },
               ]),
             ),
           };

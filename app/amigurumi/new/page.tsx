@@ -555,6 +555,7 @@ export default function NewAmigurumiPage() {
       category: "amigurumi",
       gauge,
       garmentData: null,
+      hatData: null,
       amigurumiShapes: named,
       colorworkData: null,
       instructions: buildInstructions(named, gauge),
