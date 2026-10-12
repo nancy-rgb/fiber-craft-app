@@ -186,6 +186,7 @@ export default function NewGarmentPage() {
       garmentData: inputs,
       amigurumiShapes: [],
       colorworkData: null,
+      hatData: null,
       instructions: calculateGarmentPattern(inputs, gauge),
     });
     router.push(`/project/${id}`);

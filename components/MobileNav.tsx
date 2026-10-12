@@ -14,12 +14,12 @@ const tabs = [
   },
   {
     href: "/garments/new",
-    label: "New Garment",
+    label: "Garment",
     icon: <path d="M8 3 3 6l2 5 2-1v11h10V10l2 1 2-5-5-3a4 4 0 0 1-8 0Z" />,
   },
   {
     href: "/amigurumi/new",
-    label: "New Amigurumi",
+    label: "Amigurumi",
     icon: (
       <>
         <circle cx="12" cy="13" r="7" />
@@ -29,8 +29,19 @@ const tabs = [
     ),
   },
   {
+    href: "/hats/new",
+    label: "Hat",
+    icon: (
+      <>
+        <circle cx="12" cy="4.5" r="1.5" />
+        <path d="M5.5 14a6.5 6.5 0 0 1 13 0" />
+        <path d="M4 14h16v6H4z" />
+      </>
+    ),
+  },
+  {
     href: "/colorwork/new",
-    label: "Photo to Pattern",
+    label: "Photo",
     icon: null,
     Icon: Camera,
   },
@@ -44,7 +55,7 @@ export function MobileNav() {
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
-      <ul className="mx-auto grid max-w-md grid-cols-4">
+      <ul className="mx-auto grid max-w-md grid-cols-5">
         {tabs.map((tab) => {
           const active =
             tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);

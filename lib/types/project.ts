@@ -1,6 +1,6 @@
 export type CraftType = "knitting" | "crochet";
 
-export type ProjectCategory = "garment" | "amigurumi" | "colorwork";
+export type ProjectCategory = "garment" | "amigurumi" | "colorwork" | "hat";
 
 export interface Gauge {
   stitchesPerInch: number;
@@ -17,6 +17,21 @@ export interface GarmentInputs {
 }
 
 export type AmigurumiShapeType = "sphere" | "cylinder" | "cone";
+
+export type HatBrimStyle = "none" | "single" | "folded";
+export type HatRibbing = "1x1" | "2x2" | "garter";
+export type HatBodyStyle = "fitted" | "standard" | "slouchy" | "balloon";
+export type HatCrownStyle = "dome" | "long-tail" | "square-cat-ear" | "cinch";
+
+export interface HatInputs {
+  headCircumferenceInches: number;
+  brimStyle: HatBrimStyle;
+  ribbingType: HatRibbing;
+  bodyStyle: HatBodyStyle;
+  crownStyle: HatCrownStyle;
+  /** Total hat height only when crownStyle === 'long-tail'. */
+  tailLengthInches?: number;
+}
 
 export interface SafetyEyePlacement {
   eyeSizeMm: number;
@@ -87,6 +102,7 @@ export interface Project {
   category: ProjectCategory;
   gauge: Gauge;
   garmentData: GarmentInputs | null;
+  hatData: HatInputs | null;
   amigurumiShapes: AmigurumiShape[];
   colorworkData: ColorworkGrid | null;
   instructions: CalculatedInstruction[];
