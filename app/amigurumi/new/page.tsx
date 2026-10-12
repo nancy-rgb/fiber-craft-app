@@ -94,6 +94,53 @@ const POSITIONS: { value: AttachmentPosition; label: string }[] = [
   { value: "back", label: "Back (tail)" },
 ];
 
+const POSITION_LABEL: Record<AttachmentPosition, string> = {
+  side: "side",
+  top: "top",
+  bottom: "bottom",
+  front: "front",
+  back: "back",
+};
+
+/** Quick-add presets: a pre-sized piece already attached in position. */
+const QUICK_ADDS: {
+  label: string;
+  type: AmigurumiShapeType;
+  position: AttachmentPosition;
+  diameter: number;
+  height: number;
+}[] = [
+  { label: "Ear", type: "cone", position: "top", diameter: 1.25, height: 1.5 },
+  {
+    label: "Arm",
+    type: "cylinder",
+    position: "side",
+    diameter: 0.9,
+    height: 1.75,
+  },
+  {
+    label: "Leg",
+    type: "cylinder",
+    position: "bottom",
+    diameter: 1,
+    height: 1.25,
+  },
+  {
+    label: "Tail",
+    type: "sphere",
+    position: "back",
+    diameter: 0.9,
+    height: 0.9,
+  },
+  {
+    label: "Snout",
+    type: "sphere",
+    position: "front",
+    diameter: 1.25,
+    height: 1,
+  },
+];
+
 function safeRounds(shape: AmigurumiShape, gauge: Gauge | null) {
   if (!gauge) return null;
   try {
@@ -502,8 +549,33 @@ export default function NewAmigurumiPage() {
     newShape("sphere", "Head", 3, 3),
     newShape("cylinder", "Body", 2.5, 3),
   ]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const gauge = toGauge(unit, stitches, rows);
+
+  const selectedIndex = Math.max(
+    0,
+    shapes.findIndex((s) => s.id === selectedId),
+  );
+  const selected = shapes[selectedIndex];
+  const selectedRounds = selected ? safeRounds(selected, gauge) : null;
+
+  const quickAdd = (
+    target: AmigurumiShape,
+    preset: (typeof QUICK_ADDS)[number],
+  ) => {
+    const targetRounds = safeRounds(target, gauge);
+    const piece: AmigurumiShape = {
+      ...newShape(preset.type, preset.label, preset.diameter, preset.height),
+      attachment: {
+        targetPieceId: target.id,
+        round: targetRounds ? Math.ceil(targetRounds.length / 2) : 4,
+        position: preset.position,
+      },
+    };
+    setShapes((prev) => [...prev, piece]);
+    setSelectedId(piece.id);
+  };
 
   const update = (id: string, patch: Partial<AmigurumiShape>) =>
     setShapes((prev) =>
@@ -605,124 +677,167 @@ export default function NewAmigurumiPage() {
         )}
       </Section>
 
-      <ol className="flex flex-col gap-3">
-        {shapes.map((shape, index) => {
-          const summary = gauge
-            ? `${maxStitchesForDiameter(shape.maxDiameterInches, gauge)} sts max · ${
-                planSpiralRounds(shape, gauge).length
-              } rounds`
-            : null;
-          return (
-            <li
-              key={shape.id}
-              className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4"
-            >
-              <div className="flex items-center gap-2">
-                <input
-                  aria-label={`Piece ${index + 1} name`}
-                  value={shape.name}
-                  onChange={(e) => update(shape.id, { name: e.target.value })}
-                  placeholder={`Piece ${index + 1}`}
-                  className="min-h-11 min-w-0 flex-1 rounded-lg border border-control bg-card px-3 text-base font-medium outline-none focus:border-accent"
-                />
-                <button
-                  type="button"
-                  onClick={() => move(index, -1)}
-                  disabled={index === 0}
-                  aria-label={`Move ${pieceName(shape, index)} up`}
-                  className="min-h-11 min-w-11 rounded-lg text-muted disabled:opacity-30"
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  onClick={() => move(index, 1)}
-                  disabled={index === shapes.length - 1}
-                  aria-label={`Move ${pieceName(shape, index)} down`}
-                  className="min-h-11 min-w-11 rounded-lg text-muted disabled:opacity-30"
-                >
-                  ↓
-                </button>
-              </div>
-              <Segmented
-                label={`${pieceName(shape, index)} shape`}
-                value={shape.type}
-                options={SHAPE_TYPES}
-                onChange={(type) => update(shape.id, { type })}
+      <div className="flex flex-col gap-3">
+        <div
+          role="tablist"
+          aria-label="Pieces"
+          className="flex gap-2 overflow-x-auto pb-1"
+        >
+          {shapes.map((shape, i) => {
+            const target = shape.attachment
+              ? shapes.find((s) => s.id === shape.attachment?.targetPieceId)
+              : undefined;
+            return (
+              <button
+                key={shape.id}
+                type="button"
+                role="tab"
+                aria-selected={shape.id === selected?.id}
+                onClick={() => setSelectedId(shape.id)}
+                className={`min-h-11 shrink-0 rounded-full border px-4 text-sm font-medium ${
+                  shape.id === selected?.id
+                    ? "border-accent bg-accent text-accent-foreground"
+                    : "border-control bg-card"
+                }`}
+              >
+                {pieceName(shape, i)}
+                {target && (
+                  <span className="ml-1 opacity-70">
+                    → {pieceName(target, shapes.indexOf(target))}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => {
+              const piece = newShape("sphere", "");
+              setShapes((prev) => [...prev, piece]);
+              setSelectedId(piece.id);
+            }}
+            className="min-h-11 shrink-0 rounded-full border border-dashed border-control px-4 text-sm font-medium"
+          >
+            + Piece
+          </button>
+        </div>
+
+        {selected && (
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-2">
+              <input
+                aria-label={`Piece ${selectedIndex + 1} name`}
+                value={selected.name}
+                onChange={(e) => update(selected.id, { name: e.target.value })}
+                placeholder={`Piece ${selectedIndex + 1}`}
+                className="min-h-11 min-w-0 flex-1 rounded-lg border border-control bg-card px-3 text-base font-medium outline-none focus:border-accent"
               />
+              <button
+                type="button"
+                onClick={() => move(selectedIndex, -1)}
+                disabled={selectedIndex === 0}
+                aria-label={`Move ${pieceName(selected, selectedIndex)} up`}
+                className="min-h-11 min-w-11 rounded-lg text-muted disabled:opacity-30"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                onClick={() => move(selectedIndex, 1)}
+                disabled={selectedIndex === shapes.length - 1}
+                aria-label={`Move ${pieceName(selected, selectedIndex)} down`}
+                className="min-h-11 min-w-11 rounded-lg text-muted disabled:opacity-30"
+              >
+                ↓
+              </button>
+            </div>
+            <Segmented
+              label={`${pieceName(selected, selectedIndex)} shape`}
+              value={selected.type}
+              options={SHAPE_TYPES}
+              onChange={(type) => update(selected.id, { type })}
+            />
+            <Slider
+              id={`${selected.id}-diameter`}
+              label="Widest diameter"
+              value={selected.maxDiameterInches}
+              min={0.5}
+              max={8}
+              onChange={(maxDiameterInches) =>
+                update(selected.id, { maxDiameterInches })
+              }
+            />
+            {selected.type !== "sphere" && (
               <Slider
-                id={`${shape.id}-diameter`}
-                label="Widest diameter"
-                value={shape.maxDiameterInches}
+                id={`${selected.id}-height`}
+                label="Height"
+                value={selected.heightInches}
                 min={0.5}
-                max={8}
-                onChange={(maxDiameterInches) =>
-                  update(shape.id, { maxDiameterInches })
+                max={10}
+                onChange={(heightInches) =>
+                  update(selected.id, { heightInches })
                 }
               />
-              {shape.type !== "sphere" && (
-                <Slider
-                  id={`${shape.id}-height`}
-                  label="Height"
-                  value={shape.heightInches}
-                  min={0.5}
-                  max={10}
-                  onChange={(heightInches) =>
-                    update(shape.id, { heightInches })
-                  }
-                />
-              )}
-              <PieceExtras
-                shape={shape}
-                shapes={shapes}
-                gauge={gauge}
-                onChange={(patch) => update(shape.id, patch)}
-              />
-              <div className="flex items-center justify-between gap-2 text-sm">
-                <span className="text-muted">{summary}</span>
-                <div className="flex gap-1">
+            )}
+            <p className="text-sm text-muted">
+              {selectedRounds
+                ? `${maxStitchesForDiameter(selected.maxDiameterInches, gauge!)} sts max · ${selectedRounds.length} rounds`
+                : "Enter your gauge to see the rounds."}
+            </p>
+            <PieceExtras
+              shape={selected}
+              shapes={shapes}
+              gauge={gauge}
+              onChange={(patch) => update(selected.id, patch)}
+            />
+            <div className="flex flex-col gap-1 border-t border-border pt-2">
+              <p className="text-sm font-medium">
+                Add a piece attached to {pieceName(selected, selectedIndex)}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {QUICK_ADDS.map((preset) => (
                   <button
+                    key={preset.label}
                     type="button"
-                    onClick={() => duplicate(index)}
-                    className="min-h-11 rounded-lg px-3 text-muted active:bg-border"
+                    onClick={() => quickAdd(selected, preset)}
+                    className="min-h-11 rounded-full border border-dashed border-control px-3 text-sm font-medium"
                   >
-                    Duplicate
+                    + {preset.label}
+                    <span className="ml-1 text-muted">
+                      ({POSITION_LABEL[preset.position]})
+                    </span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShapes((prev) =>
-                        prev
-                          .filter((s) => s.id !== shape.id)
-                          .map((s) =>
-                            s.attachment?.targetPieceId === shape.id
-                              ? { ...s, attachment: null }
-                              : s,
-                          ),
-                      )
-                    }
-                    className="min-h-11 rounded-lg px-3 text-muted active:bg-border"
-                  >
-                    Remove
-                  </button>
-                </div>
+                ))}
               </div>
-            </li>
-          );
-        })}
-      </ol>
-
-      <div className="grid grid-cols-3 gap-2">
-        {SHAPE_TYPES.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setShapes((prev) => [...prev, newShape(value, "")])}
-            className="min-h-11 rounded-lg border border-dashed border-border text-sm font-medium"
-          >
-            + {label}
-          </button>
-        ))}
+            </div>
+            <div className="flex justify-end gap-1">
+              <button
+                type="button"
+                onClick={() => duplicate(selectedIndex)}
+                className="min-h-11 rounded-lg px-3 text-sm text-muted active:bg-border"
+              >
+                Duplicate
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setShapes((prev) =>
+                    prev
+                      .filter((s) => s.id !== selected.id)
+                      .map((s) =>
+                        s.attachment?.targetPieceId === selected.id
+                          ? { ...s, attachment: null }
+                          : s,
+                      ),
+                  )
+                }
+                className="min-h-11 rounded-lg px-3 text-sm text-muted active:bg-border"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {!gauge && (
