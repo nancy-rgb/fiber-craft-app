@@ -60,19 +60,47 @@ const clamp = (n: number, min: number, max: number) =>
 // Downscale first: quantizing averages blocks anyway, and big phone photos
 // would otherwise make every slider drag slow.
 async function readImage(file: File) {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, 400 / Math.max(bitmap.width, bitmap.height));
+  const url = URL.createObjectURL(file);
+  try {
+    // createImageBitmap can't decode iPhone HEIC photos on some iOS/Safari
+    // versions; <img> can, so fall back to it.
+    const data = await loadIntoCanvas(file, url);
+    return { data, url };
+  } catch {
+    URL.revokeObjectURL(url);
+    throw new Error("Unreadable image");
+  }
+}
+
+async function loadIntoCanvas(file: File, url: string) {
+  let source: CanvasImageSource;
+  let srcW: number;
+  let srcH: number;
+  try {
+    const bitmap = await createImageBitmap(file);
+    source = bitmap;
+    srcW = bitmap.width;
+    srcH = bitmap.height;
+  } catch {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("Image decode failed"));
+      el.src = url;
+    });
+    source = img;
+    srcW = img.naturalWidth;
+    srcH = img.naturalHeight;
+  }
+  const scale = Math.min(1, 400 / Math.max(srcW, srcH));
   const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.width = Math.max(1, Math.round(srcW * scale));
+  canvas.height = Math.max(1, Math.round(srcH * scale));
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas unavailable");
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  return {
-    data: ctx.getImageData(0, 0, canvas.width, canvas.height),
-    url: URL.createObjectURL(file),
-  };
+  ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+  if (source instanceof ImageBitmap) source.close();
+  return ctx.getImageData(0, 0, canvas.width, canvas.height);
 }
 
 function SizeSlider({
