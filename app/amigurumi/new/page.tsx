@@ -289,7 +289,18 @@ function PieceExtras({
 
   return (
     <div className="flex flex-col gap-1 border-t border-border pt-2">
-      <Toggle label="Safety eyes" checked={!!eyes} onChange={toggleEyes} />
+      <div className="grid grid-cols-2">
+        <Toggle label="Safety eyes" checked={!!eyes} onChange={toggleEyes} />
+        <Toggle
+          label="Stripes"
+          checked={!!stripes}
+          onChange={(on) =>
+            onChange({
+              stripes: on ? DEFAULT_STRIPES.map((s) => ({ ...s })) : null,
+            })
+          }
+        />
+      </div>
       {eyes && (
         <div className="flex flex-col gap-3 rounded-lg bg-oat/50 p-3">
           <div className="grid grid-cols-3 gap-2">
@@ -358,15 +369,6 @@ function PieceExtras({
         </div>
       )}
 
-      <Toggle
-        label="Stripes"
-        checked={!!stripes}
-        onChange={(on) =>
-          onChange({
-            stripes: on ? DEFAULT_STRIPES.map((s) => ({ ...s })) : null,
-          })
-        }
-      />
       {stripes && (
         <div className="flex flex-col gap-2 rounded-lg bg-oat/50 p-3">
           <p className="text-xs text-muted">
@@ -439,72 +441,61 @@ function PieceExtras({
         </div>
       )}
 
-      {others.length > 0 && (
-        <>
-          <Toggle
-            label="Attach to another piece"
-            checked={!!attachment}
-            onChange={(on) =>
-              on ? attachTo(others[0].shape.id) : onChange({ attachment: null })
-            }
-          />
-          {attachment && (
-            <div className="grid grid-cols-2 gap-2 rounded-lg bg-oat/50 p-3">
-              <label className="col-span-2 flex flex-col gap-1 text-sm font-medium">
-                Attach to
-                <select
-                  value={attachment.targetPieceId}
-                  onChange={(e) => attachTo(e.target.value)}
-                  className="min-h-11 rounded-lg border border-control bg-card px-2 text-base"
-                >
-                  {others.map((o) => (
-                    <option key={o.shape.id} value={o.shape.id}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex min-w-0 flex-col gap-1 text-sm font-medium">
-                Position
-                <select
-                  value={attachment.position}
-                  onChange={(e) =>
-                    onChange({
-                      attachment: {
-                        ...attachment,
-                        position: e.target.value as AttachmentPosition,
-                      },
-                    })
-                  }
-                  className="min-h-11 min-w-0 rounded-lg border border-control bg-card px-2 text-base"
-                >
-                  {POSITIONS.map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {attachment.position !== "top" &&
-                attachment.position !== "bottom" && (
-                  <IntField
-                    id={`${shape.id}-attach-round`}
-                    label="On round"
-                    value={attachment.round}
-                    max={targetRounds?.length ?? 99}
-                    onChange={(round) =>
-                      onChange({ attachment: { ...attachment, round } })
-                    }
-                  />
-                )}
-              {target && targetRounds && (
-                <p className="col-span-2 text-xs text-muted">
-                  {target.label} has {targetRounds.length} rounds.
-                </p>
-              )}
-            </div>
+      {attachment && others.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 rounded-lg bg-oat/50 p-3">
+          <label className="col-span-2 flex flex-col gap-1 text-sm font-medium">
+            Attach to
+            <select
+              value={attachment.targetPieceId}
+              onChange={(e) => attachTo(e.target.value)}
+              className="min-h-11 rounded-lg border border-control bg-card px-2 text-base"
+            >
+              {others.map((o) => (
+                <option key={o.shape.id} value={o.shape.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex min-w-0 flex-col gap-1 text-sm font-medium">
+            Position
+            <select
+              value={attachment.position}
+              onChange={(e) =>
+                onChange({
+                  attachment: {
+                    ...attachment,
+                    position: e.target.value as AttachmentPosition,
+                  },
+                })
+              }
+              className="min-h-11 min-w-0 rounded-lg border border-control bg-card px-2 text-base"
+            >
+              {POSITIONS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {attachment.position !== "top" &&
+            attachment.position !== "bottom" && (
+              <IntField
+                id={`${shape.id}-attach-round`}
+                label="On round"
+                value={attachment.round}
+                max={targetRounds?.length ?? 99}
+                onChange={(round) =>
+                  onChange({ attachment: { ...attachment, round } })
+                }
+              />
+            )}
+          {target && targetRounds && (
+            <p className="col-span-2 text-xs text-muted">
+              {target.label} has {targetRounds.length} rounds.
+            </p>
           )}
-        </>
+        </div>
       )}
     </div>
   );
