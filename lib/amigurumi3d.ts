@@ -2,6 +2,7 @@ import { planSpiralRounds } from "@/lib/math/amigurumiMath";
 import type {
   AmigurumiShape,
   AttachmentPosition,
+  Gauge,
   LimbAttachment,
 } from "@/lib/types/project";
 
@@ -49,12 +50,13 @@ export interface Layout3D {
   radius: number;
 }
 
-export const roundsOf = (s: AmigurumiShape) => {
+/** Used while the builder's gauge fields are empty or invalid. */
+export const FALLBACK_GAUGE: Gauge = { stitchesPerInch: 5, rowsPerInch: 5 };
+
+/** Round count with the project's gauge, matching the builder's round fields. */
+export const roundsOf = (s: AmigurumiShape, gauge: Gauge | null) => {
   try {
-    return Math.max(
-      1,
-      planSpiralRounds(s, { stitchesPerInch: 1, rowsPerInch: 1 }).length,
-    );
+    return Math.max(1, planSpiralRounds(s, gauge ?? FALLBACK_GAUGE).length);
   } catch {
     return 1;
   }
@@ -123,7 +125,10 @@ export function attachFraction(att: LimbAttachment, targetRounds: number) {
  * sit on their target: ears on top, arms on the sides, legs underneath,
  * snouts in front and tails behind. Pairs mirror left/right.
  */
-export function layoutPieces(shapes: AmigurumiShape[]): Layout3D {
+export function layoutPieces(
+  shapes: AmigurumiShape[],
+  gauge: Gauge | null,
+): Layout3D {
   const pieces: PiecePlacement[] = [];
   const roots = new Map<string, { shape: AmigurumiShape; cy: number }>();
 
@@ -155,7 +160,7 @@ export function layoutPieces(shapes: AmigurumiShape[]): Layout3D {
     const th = pieceHeight(target.shape);
     const ttop = target.cy + th / 2;
     const h = pieceHeight(shape);
-    const targetRounds = roundsOf(target.shape);
+    const targetRounds = roundsOf(target.shape, gauge);
     const frac = attachFraction(att, targetRounds);
     const key = `${att.targetPieceId}:${att.position}`;
     const seen = (siblings.get(key) ?? 0) + 1;

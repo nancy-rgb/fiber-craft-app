@@ -724,6 +724,7 @@ export default function NewAmigurumiPage() {
       <Section title="Preview">
         <Scene3D
           shapes={shapes}
+          gauge={gauge}
           onAttachmentRound={(id, round) =>
             update(id, {
               attachment: {

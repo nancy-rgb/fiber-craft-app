@@ -37,6 +37,7 @@ function Preview({ project }: { project: Project }) {
     return (
       <Scene3D
         shapes={project.amigurumiShapes}
+        gauge={project.gauge}
         activeIndex={activePieceIndex(project.instructions, index)}
       />
     );

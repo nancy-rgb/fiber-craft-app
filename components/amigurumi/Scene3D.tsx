@@ -15,7 +15,7 @@ import {
   type Layout3D,
   type PiecePlacement,
 } from "@/lib/amigurumi3d";
-import type { AmigurumiShape } from "@/lib/types/project";
+import type { AmigurumiShape, Gauge } from "@/lib/types/project";
 
 const FOV = 40;
 const COLOR = "#d7a6a0"; // --rose
@@ -72,13 +72,19 @@ function PieceGeometry({ shape }: { shape: AmigurumiShape }) {
   }
 }
 
-function Eyes({ shape }: { shape: AmigurumiShape }) {
+function Eyes({
+  shape,
+  gauge,
+}: {
+  shape: AmigurumiShape;
+  gauge: Gauge | null;
+}) {
   if (!shape.eyes) return null;
   const h = pieceHeight(shape);
   const w = shape.maxDiameterInches;
   const f = Math.min(
     0.85,
-    Math.max(0.1, shape.eyes.eyePlacementRound / roundsOf(shape)),
+    Math.max(0.1, shape.eyes.eyePlacementRound / roundsOf(shape, gauge)),
   );
   const gap = Math.min((shape.eyes.eyeDistanceStitches / 6) * (w / 6), w * 0.3);
   const xr = (w / 2) * profileRadius(shape, f);
@@ -103,11 +109,13 @@ function Eyes({ shape }: { shape: AmigurumiShape }) {
 
 function Piece({
   piece,
+  gauge,
   dimmed,
   highlighted,
   onPointerDown,
 }: {
   piece: PiecePlacement;
+  gauge: Gauge | null;
   dimmed: boolean;
   highlighted: boolean;
   onPointerDown?: (e: ThreeEvent<PointerEvent>) => void;
@@ -134,7 +142,7 @@ function Piece({
           }
         />
       </mesh>
-      {!dimmed && <Eyes shape={shape} />}
+      {!dimmed && <Eyes shape={shape} gauge={gauge} />}
     </group>
   );
 }
@@ -174,18 +182,24 @@ function CameraRig({
   return null;
 }
 
-function Model({ shapes, activeIndex, onAttachmentRound }: Scene3DProps) {
-  const layout = useMemo(() => layoutPieces(shapes), [shapes]);
+function Model({
+  shapes,
+  gauge = null,
+  activeIndex,
+  onAttachmentRound,
+}: Scene3DProps) {
+  const layout = useMemo(() => layoutPieces(shapes, gauge), [shapes, gauge]);
   const controls = useRef<Controls>(null);
   const camera = useThree((s) => s.camera);
   const height = useThree((s) => s.size.height);
   // Refit only when geometry changes, not while an attach round is dragged.
-  const fitKey = shapes
-    .map(
-      (s) =>
-        `${s.id}:${s.type}:${s.maxDiameterInches}:${s.heightInches}:${s.attachment?.targetPieceId}:${s.attachment?.position}`,
-    )
-    .join("|");
+  const fitKey =
+    shapes
+      .map(
+        (s) =>
+          `${s.id}:${s.type}:${s.maxDiameterInches}:${s.heightInches}:${s.attachment?.targetPieceId}:${s.attachment?.position}`,
+      )
+      .join("|") + `@${gauge?.stitchesPerInch}/${gauge?.rowsPerInch}`;
 
   const startDrag =
     (piece: PiecePlacement) => (e: ThreeEvent<PointerEvent>) => {
@@ -239,6 +253,7 @@ function Model({ shapes, activeIndex, onAttachmentRound }: Scene3DProps) {
         <Piece
           key={p.shape.id}
           piece={p}
+          gauge={gauge}
           dimmed={activeIndex !== undefined && activeIndex !== p.index}
           highlighted={activeIndex === p.index}
           onPointerDown={onAttachmentRound && p.drag ? startDrag(p) : undefined}
@@ -258,6 +273,8 @@ function Model({ shapes, activeIndex, onAttachmentRound }: Scene3DProps) {
 
 export interface Scene3DProps {
   shapes: AmigurumiShape[];
+  /** Project gauge, so attach and eye rounds line up with the pattern. */
+  gauge?: Gauge | null;
   /** Highlights the piece being worked; others are dimmed. */
   activeIndex?: number;
   /** Drag callback: (attached shape id, new round on its target). */
