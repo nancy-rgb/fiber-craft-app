@@ -12,6 +12,7 @@ const sampleProject: NewProject = {
   gauge: { stitchesPerInch: 5, rowsPerInch: 5 },
   garmentData: null,
   hatData: null,
+  sockData: null,
   amigurumiShapes: [
     {
       id: "sample-ball",
@@ -50,6 +51,24 @@ const sampleProject: NewProject = {
   ],
 };
 
+function SockIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="size-6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M8 3h7v9l4.4 3.1a2.9 2.9 0 0 1-1.7 5.3h-6.1a4.6 4.6 0 0 1-3.6-7.5V3Z" />
+      <path d="M8 6.5h7" />
+    </svg>
+  );
+}
+
 export default function Dashboard() {
   const hasHydrated = useProjectStore((s) => s.hasHydrated);
   const projects = useProjectStore((s) => s.projects);
@@ -83,6 +102,21 @@ export default function Dashboard() {
         </span>
       </Link>
 
+      <Link
+        href="/socks/new"
+        className="flex items-center gap-4 rounded-2xl bg-rose/40 p-4 active:bg-rose/60"
+      >
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-moss text-moss-foreground">
+          <SockIcon />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-semibold">Knit Top-Down Socks</span>
+          <span className="block text-sm">
+            Heel flap, gusset and toe sized to your foot
+          </span>
+        </span>
+      </Link>
+
       {!hasHydrated ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : list.length === 0 ? (
@@ -108,8 +142,14 @@ export default function Dashboard() {
               New Hat
             </Link>
             <Link
-              href="/colorwork/new"
+              href="/socks/new"
               className="rounded-lg border-2 border-moss px-3 py-3 font-semibold text-moss"
+            >
+              New Socks
+            </Link>
+            <Link
+              href="/colorwork/new"
+              className="col-span-2 rounded-lg border-2 border-moss px-3 py-3 font-semibold text-moss"
             >
               New Colorwork
             </Link>

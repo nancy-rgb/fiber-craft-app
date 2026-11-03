@@ -1,6 +1,7 @@
 export type CraftType = "knitting" | "crochet";
 
-export type ProjectCategory = "garment" | "amigurumi" | "colorwork" | "hat";
+export type ProjectCategory =
+  "garment" | "amigurumi" | "colorwork" | "hat" | "sock";
 
 export interface Gauge {
   stitchesPerInch: number;
@@ -41,6 +42,17 @@ export interface HatInputs {
   crownStyle: HatCrownStyle;
   /** Total hat height only when crownStyle === 'long-tail'. */
   tailLengthInches?: number;
+}
+
+/** Top-down heel-flap sock. */
+export interface SockInputs {
+  footCircumferenceInches: number;
+  /** Heel to tip of longest toe. */
+  footLengthInches: number;
+  /** Leg length from cast-on to the top of the heel flap (1" ankle, 6" crew). */
+  cuffLengthInches: number;
+  /** Negative ease as a percent of foot circumference (default 10). */
+  negativeEasePercent: number;
 }
 
 export interface SafetyEyePlacement {
@@ -119,6 +131,7 @@ export interface Project {
   gauge: Gauge;
   garmentData: GarmentInputs | null;
   hatData: HatInputs | null;
+  sockData: SockInputs | null;
   amigurumiShapes: AmigurumiShape[];
   colorworkData: ColorworkGrid | null;
   instructions: CalculatedInstruction[];

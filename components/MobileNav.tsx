@@ -40,6 +40,16 @@ const tabs = [
     ),
   },
   {
+    href: "/socks/new",
+    label: "Socks",
+    icon: (
+      <>
+        <path d="M8 3h7v9l4.4 3.1a2.9 2.9 0 0 1-1.7 5.3h-6.1a4.6 4.6 0 0 1-3.6-7.5V3Z" />
+        <path d="M8 6.5h7" />
+      </>
+    ),
+  },
+  {
     href: "/colorwork/new",
     label: "Photo",
     icon: null,
@@ -55,7 +65,7 @@ export function MobileNav() {
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
-      <ul className="mx-auto grid max-w-md grid-cols-5">
+      <ul className="mx-auto grid max-w-md grid-cols-6">
         {tabs.map((tab) => {
           const active =
             tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
@@ -64,7 +74,7 @@ export function MobileNav() {
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-16 flex-col items-center justify-center gap-1 px-1 text-xs font-medium ${
+                className={`flex min-h-16 flex-col items-center justify-center gap-1 px-0.5 text-[11px] font-medium ${
                   active ? "text-accent" : "text-muted"
                 }`}
               >
