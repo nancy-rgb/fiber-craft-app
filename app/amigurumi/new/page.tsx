@@ -722,21 +722,10 @@ export default function NewAmigurumiPage() {
       </Section>
 
       <Section title="Preview">
-        <Scene3D
-          shapes={shapes}
-          gauge={gauge}
-          onAttachmentRound={(id, round) =>
-            update(id, {
-              attachment: {
-                ...shapes.find((s) => s.id === id)!.attachment!,
-                round,
-              },
-            })
-          }
-        />
+        <Scene3D shapes={shapes} gauge={gauge} />
         <p className="mt-1 text-center text-xs text-muted">
-          Swipe to turn the model. Drag arms, tails and snouts up or down to
-          change where they sew on.
+          Swipe to turn the model, pinch to zoom. To move an arm, tail or snout,
+          change its attach round in the piece settings below.
         </p>
         {shapes.length === 0 && (
           <p className="text-center text-sm text-muted">Add a piece below.</p>

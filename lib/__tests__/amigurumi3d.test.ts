@@ -66,7 +66,6 @@ describe("layoutPieces", () => {
     expect(b.position[0]).toBeCloseTo(-a.position[0]);
     expect(a.position[1]).toBeCloseTo(b.position[1]);
     expect(a.rotation[2]).toBeCloseTo(-b.rotation[2]);
-    expect(a.drag).not.toBeNull();
   });
 
   it("moves a side piece down as its attach round grows", () => {
@@ -99,9 +98,6 @@ describe("layoutPieces", () => {
     expect(byId(l, "leg").position[1]).toBeLessThan(b[1] - 1.5);
     expect(byId(l, "snout").position[2]).toBeGreaterThan(1);
     expect(byId(l, "tail").position[2]).toBeLessThan(-1);
-    expect(byId(l, "ear").drag).toBeNull();
-    expect(byId(l, "leg").drag).toBeNull();
-    expect(byId(l, "snout").drag).not.toBeNull();
   });
 
   it("places the attach round using the project gauge", () => {

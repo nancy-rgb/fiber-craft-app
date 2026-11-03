@@ -1,7 +1,7 @@
 "use client";
 
 import { OrbitControls } from "@react-three/drei";
-import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, type ComponentRef } from "react";
 import * as THREE from "three";
 import {
@@ -112,13 +112,11 @@ function Piece({
   gauge,
   dimmed,
   highlighted,
-  onPointerDown,
 }: {
   piece: PiecePlacement;
   gauge: Gauge | null;
   dimmed: boolean;
   highlighted: boolean;
-  onPointerDown?: (e: ThreeEvent<PointerEvent>) => void;
 }) {
   const { shape } = piece;
   const flat = isFlat(shape) ? FLAT_DEPTH : 1;
@@ -128,7 +126,7 @@ function Piece({
     shape.type === "oval" ? [R, half, half * flat] : [1, 1, flat];
   return (
     <group position={piece.position} rotation={piece.rotation}>
-      <mesh scale={scale} onPointerDown={onPointerDown}>
+      <mesh scale={scale}>
         <PieceGeometry shape={shape} />
         <meshStandardMaterial
           color={dimmed ? DIMMED : COLOR}
@@ -182,17 +180,10 @@ function CameraRig({
   return null;
 }
 
-function Model({
-  shapes,
-  gauge = null,
-  activeIndex,
-  onAttachmentRound,
-}: Scene3DProps) {
+function Model({ shapes, gauge = null, activeIndex }: Scene3DProps) {
   const layout = useMemo(() => layoutPieces(shapes, gauge), [shapes, gauge]);
   const controls = useRef<Controls>(null);
-  const camera = useThree((s) => s.camera);
-  const height = useThree((s) => s.size.height);
-  // Refit only when geometry changes, not while an attach round is dragged.
+  // Refit when pieces are added, removed or resized, not on every attach-round edit.
   const fitKey =
     shapes
       .map(
@@ -200,49 +191,6 @@ function Model({
           `${s.id}:${s.type}:${s.maxDiameterInches}:${s.heightInches}:${s.attachment?.targetPieceId}:${s.attachment?.position}`,
       )
       .join("|") + `@${gauge?.stitchesPerInch}/${gauge?.rowsPerInch}`;
-
-  const startDrag =
-    (piece: PiecePlacement) => (e: ThreeEvent<PointerEvent>) => {
-      const att = piece.shape.attachment;
-      if (!onAttachmentRound || !piece.drag || !att) return;
-      e.stopPropagation();
-      const c = controls.current;
-      if (c) c.enabled = false;
-      const { pointerId, clientY: startY } = e.nativeEvent;
-      const dist = camera.position.distanceTo(
-        new THREE.Vector3(...piece.position),
-      );
-      const worldPerPx =
-        (2 * dist * Math.tan(THREE.MathUtils.degToRad(FOV / 2))) / height;
-      const roundsPerPx =
-        (worldPerPx * piece.drag.targetRounds) / piece.drag.targetHeight;
-      const maxRound = piece.drag.targetRounds;
-      let last = att.round;
-      const move = (ev: PointerEvent) => {
-        if (ev.pointerId !== pointerId) return;
-        const next = Math.min(
-          maxRound,
-          Math.max(
-            1,
-            Math.round(att.round + (ev.clientY - startY) * roundsPerPx),
-          ),
-        );
-        if (next !== last) {
-          last = next;
-          onAttachmentRound(piece.shape.id, next);
-        }
-      };
-      const end = (ev: PointerEvent) => {
-        if (ev.pointerId !== pointerId) return;
-        window.removeEventListener("pointermove", move);
-        window.removeEventListener("pointerup", end);
-        window.removeEventListener("pointercancel", end);
-        if (controls.current) controls.current.enabled = true;
-      };
-      window.addEventListener("pointermove", move);
-      window.addEventListener("pointerup", end);
-      window.addEventListener("pointercancel", end);
-    };
 
   return (
     <>
@@ -256,7 +204,6 @@ function Model({
           gauge={gauge}
           dimmed={activeIndex !== undefined && activeIndex !== p.index}
           highlighted={activeIndex === p.index}
-          onPointerDown={onAttachmentRound && p.drag ? startDrag(p) : undefined}
         />
       ))}
       <OrbitControls
@@ -277,14 +224,11 @@ export interface Scene3DProps {
   gauge?: Gauge | null;
   /** Highlights the piece being worked; others are dimmed. */
   activeIndex?: number;
-  /** Drag callback: (attached shape id, new round on its target). */
-  onAttachmentRound?: (shapeId: string, round: number) => void;
 }
 
 /**
  * Interactive 3D preview of the assembled amigurumi. Swipe to orbit 360°,
- * pinch to zoom. With `onAttachmentRound`, side/front/back pieces can be
- * dragged up or down their target to change the attach round.
+ * pinch to zoom.
  */
 export function Scene3D(props: Scene3DProps) {
   if (props.shapes.length === 0) return null;

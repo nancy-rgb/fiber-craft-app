@@ -1,7 +1,6 @@
 import { planSpiralRounds } from "@/lib/math/amigurumiMath";
 import type {
   AmigurumiShape,
-  AttachmentPosition,
   Gauge,
   LimbAttachment,
 } from "@/lib/types/project";
@@ -20,19 +19,6 @@ const EAR_TILT = 0.3;
 const TAIL_LIFT = 0.35;
 const CURVE_BEND = { slight: 0.25, medium: 0.45, sharp: 0.7 } as const;
 
-/** Positions whose attach round can be changed by dragging the piece. */
-export const DRAGGABLE_POSITIONS: readonly AttachmentPosition[] = [
-  "side",
-  "front",
-  "back",
-];
-
-export interface DragInfo {
-  targetRounds: number;
-  /** Target height in inches, to convert a drag distance into rounds. */
-  targetHeight: number;
-}
-
 export interface PiecePlacement {
   shape: AmigurumiShape;
   /** Index into the original shapes array. */
@@ -40,7 +26,6 @@ export interface PiecePlacement {
   position: Vec3;
   /** Euler XYZ. Local +Y is the magic-ring end (tip of a limb). */
   rotation: Vec3;
-  drag: DragInfo | null;
 }
 
 export interface Layout3D {
@@ -147,7 +132,6 @@ export function layoutPieces(
       index,
       position: [0, cy, 0],
       rotation: [0, 0, 0],
-      drag: null,
     });
   });
 
@@ -229,9 +213,6 @@ export function layoutPieces(
         point[2] + dir[2] * reach,
       ],
       rotation,
-      drag: DRAGGABLE_POSITIONS.includes(att.position)
-        ? { targetRounds, targetHeight: th }
-        : null,
     });
   });
 
