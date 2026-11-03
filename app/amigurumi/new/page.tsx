@@ -1,11 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { GaugeFields } from "@/components/forms/GaugeFields";
 import { Section } from "@/components/forms/Section";
 import { Segmented } from "@/components/forms/Segmented";
-import { ShapeStackPreview } from "@/components/ShapeStackPreview";
 import {
   formatCount,
   parsePositive,
@@ -31,6 +31,13 @@ import type {
   Gauge,
   StripeSegment,
 } from "@/lib/types/project";
+
+const Scene3D = dynamic(() => import("@/components/amigurumi/Scene3D"), {
+  ssr: false,
+  loading: () => (
+    <div className="mx-auto h-72 w-full max-w-sm animate-pulse rounded-xl bg-oat/50" />
+  ),
+});
 
 const SHAPE_TYPES: {
   value: AmigurumiShapeType;
@@ -715,7 +722,7 @@ export default function NewAmigurumiPage() {
       </Section>
 
       <Section title="Preview">
-        <ShapeStackPreview
+        <Scene3D
           shapes={shapes}
           onAttachmentRound={(id, round) =>
             update(id, {
@@ -727,8 +734,8 @@ export default function NewAmigurumiPage() {
           }
         />
         <p className="mt-1 text-center text-xs text-muted">
-          Drag arms, tails and snouts up or down on their target to change where
-          they sew on. Ears and legs stay put.
+          Swipe to turn the model. Drag arms, tails and snouts up or down to
+          change where they sew on.
         </p>
         {shapes.length === 0 && (
           <p className="text-center text-sm text-muted">Add a piece below.</p>

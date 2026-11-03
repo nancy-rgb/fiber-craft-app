@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -7,7 +8,6 @@ import { ColorworkChart } from "@/components/ColorworkChart";
 import { Segmented } from "@/components/forms/Segmented";
 import { GarmentPreview } from "@/components/GarmentPreview";
 import { HatPreview } from "@/components/HatPreview";
-import { ShapeStackPreview } from "@/components/ShapeStackPreview";
 import {
   cellAspect,
   colorAbbreviations,
@@ -19,6 +19,13 @@ import { activePieceIndex, garmentSection } from "@/lib/projectProgress";
 import { useProjectStore } from "@/lib/store/useProjectStore";
 import type { Project } from "@/lib/types/project";
 
+const Scene3D = dynamic(() => import("@/components/amigurumi/Scene3D"), {
+  ssr: false,
+  loading: () => (
+    <div className="mx-auto h-72 w-full max-w-sm animate-pulse rounded-xl bg-oat/50" />
+  ),
+});
+
 function buzz() {
   if ("vibrate" in navigator) navigator.vibrate(50);
 }
@@ -28,7 +35,7 @@ function Preview({ project }: { project: Project }) {
   if (project.category === "amigurumi") {
     if (project.amigurumiShapes.length === 0) return null;
     return (
-      <ShapeStackPreview
+      <Scene3D
         shapes={project.amigurumiShapes}
         activeIndex={activePieceIndex(project.instructions, index)}
       />
