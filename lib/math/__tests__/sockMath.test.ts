@@ -203,3 +203,52 @@ describe("shoe size mapper", () => {
     expect(shoeSizeToFootLength(10, "men")).toBe(10.75);
   });
 });
+
+describe("contrasting heel and toe", () => {
+  const labels = (overrides: Partial<SockInputs>) =>
+    calculateSockPattern(sock(overrides), gauge).map((s) => s.label);
+
+  it("adds no color changes by default", () => {
+    const steps = calculateSockPattern(sock(), gauge);
+    expect(
+      steps.filter((s) => /Main Color|Contrast Color/.test(s.instructionText)),
+    ).toHaveLength(0);
+  });
+
+  it("switches to CC right before the heel flap and back to MC before the gusset pick-up", () => {
+    const steps = calculateSockPattern(sock({ contrastingHeel: true }), gauge);
+    const l = steps.map((s) => s.label);
+    const cc = l.indexOf("Contrast heel");
+    expect(l[cc + 1]).toBe("Heel flap");
+    expect(steps[cc].instructionText).toMatch(
+      /^Break Main Color and join Contrast Color/,
+    );
+    const mc = l.indexOf("Main color");
+    expect(l[mc - 1]).toMatch(/^Heel turn row \d+/);
+    expect(l[mc + 1]).toBe("Gusset pick-up");
+    expect(steps[mc].instructionText).toMatch(
+      /^Break Contrast Color and rejoin Main Color/,
+    );
+    expect(steps[mc].stitchCount).toBe(19); // 64-st sock: 19-st heel turn
+    expect(l).not.toContain("Contrast toe");
+    expect(steps.map((s) => s.stepNumber)).toEqual(steps.map((_, i) => i + 1));
+  });
+
+  it("switches to CC exactly where the toe decreases begin", () => {
+    const steps = calculateSockPattern(sock({ contrastingToe: true }), gauge);
+    const l = steps.map((s) => s.label);
+    const cc = l.indexOf("Contrast toe");
+    expect(l[cc + 1]).toBe("Toe dec 1");
+    expect(steps[cc].instructionText).toMatch(
+      /^Break Main Color and join Contrast Color/,
+    );
+    expect(l).not.toContain("Contrast heel");
+    expect(l).not.toContain("Main color");
+  });
+
+  it("supports both together, adding exactly 3 steps", () => {
+    expect(
+      labels({ contrastingHeel: true, contrastingToe: true }),
+    ).toHaveLength(labels({}).length + 3);
+  });
+});

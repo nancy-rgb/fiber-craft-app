@@ -6,6 +6,7 @@ import { GaugeFields } from "@/components/forms/GaugeFields";
 import { NumberField } from "@/components/forms/NumberField";
 import { Section } from "@/components/forms/Section";
 import { Segmented } from "@/components/forms/Segmented";
+import { Switch } from "@/components/ui/switch";
 import {
   formatCount,
   parsePositive,
@@ -116,6 +117,8 @@ export default function NewSockPage() {
     footCircumferenceInches: 8.5,
     cuffLengthInches: 6,
     negativeEasePercent: DEFAULT_NEGATIVE_EASE_PERCENT,
+    contrastingHeel: false,
+    contrastingToe: false,
   });
 
   const gauge = toGauge(unit, stitches, rows);
@@ -298,6 +301,29 @@ export default function NewSockPage() {
           value={inputs.cuffLengthInches}
           onPick={(cuffLengthInches) => patch({ cuffLengthInches })}
         />
+      </Section>
+
+      <Section
+        title="Colors"
+        description="Knit the heel and/or toe in a contrast color (CC)."
+      >
+        {(
+          [
+            ["contrastingHeel", "Use Contrasting Heel"],
+            ["contrastingToe", "Use Contrasting Toe"],
+          ] as const
+        ).map(([key, label]) => (
+          <div key={key} className="flex items-center justify-between gap-3">
+            <label htmlFor={key} className="text-sm font-medium">
+              {label}
+            </label>
+            <Switch
+              id={key}
+              checked={inputs[key] ?? false}
+              onCheckedChange={(checked) => patch({ [key]: checked })}
+            />
+          </div>
+        ))}
       </Section>
 
       <Section title="Knitting gauge" description="Stockinette in the round.">
