@@ -151,6 +151,7 @@ export default function NewHatPage() {
       gauge,
       garmentData: null,
       hatData: data,
+      sockData: null,
       amigurumiShapes: [],
       colorworkData: null,
       instructions: calculateHatPattern(data, gauge),

@@ -671,6 +671,7 @@ export default function NewAmigurumiPage() {
       gauge,
       garmentData: null,
       hatData: null,
+      sockData: null,
       amigurumiShapes: named,
       colorworkData: null,
       instructions: buildInstructions(named, gauge),

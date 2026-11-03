@@ -301,6 +301,7 @@ export default function NewColorworkPage() {
       gauge,
       garmentData: null,
       hatData: null,
+      sockData: null,
       amigurumiShapes: [],
       colorworkData: {
         width: grid[0].length,
