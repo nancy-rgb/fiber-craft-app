@@ -53,6 +53,10 @@ export interface SockInputs {
   cuffLengthInches: number;
   /** Negative ease as a percent of foot circumference (default 10). */
   negativeEasePercent: number;
+  /** Knit the heel flap and turn in a contrast color. */
+  contrastingHeel?: boolean;
+  /** Knit the toe decreases in a contrast color. */
+  contrastingToe?: boolean;
 }
 
 export interface SafetyEyePlacement {

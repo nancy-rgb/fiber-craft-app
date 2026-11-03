@@ -250,6 +250,13 @@ export function calculateSockPattern(
     );
   }
 
+  if (inputs.contrastingHeel) {
+    push(
+      "Contrast heel",
+      `Break Main Color and join Contrast Color, leaving 6" tails to weave in. Work the heel flap and heel turn in Contrast Color.`,
+      castOn,
+    );
+  }
   push(
     "Heel flap",
     `Work back and forth over the first ${heel} sts only; leave the other ${instep} instep sts on hold. Row 1 (RS): [sl1, k1] to end. Row 2 (WS): sl1, p to end. Repeat these 2 rows ${plan.heelFlapRows / 2} times (${plan.heelFlapRows} rows), ending after a WS row — ${plan.gussetPickupPerSide} slipped sts along each edge.`,
@@ -264,6 +271,13 @@ export function calculateSockPattern(
     ),
   );
 
+  if (inputs.contrastingHeel) {
+    push(
+      "Main color",
+      `Break Contrast Color and rejoin Main Color at the start of the heel sts, ready to pick up the gusset (${plan.heelTurnStitches} heel sts).`,
+      plan.heelTurnStitches,
+    );
+  }
   push(
     "Gusset pick-up",
     `Knit across the ${plan.heelTurnStitches} heel sts. Pick up and knit ${plan.gussetPickupPerSide} sts along the flap edge (one in each slipped st), knit across the ${instep} instep sts, then pick up and knit ${plan.gussetPickupPerSide} sts along the other flap edge. Knit to the start of the instep — this is the new start of round (${plan.stitchesAfterPickup}).`,
@@ -296,6 +310,13 @@ export function calculateSockPattern(
     `The toe decreases 4 sts per decrease round at the sides of the foot (${instep} instep sts / ${castOn - instep} sole sts).`,
     castOn,
   );
+  if (inputs.contrastingToe) {
+    push(
+      "Contrast toe",
+      `Break Main Color and join Contrast Color at the start of the instep, leaving 6" tails to weave in. Work the toe in Contrast Color.`,
+      castOn,
+    );
+  }
   plan.toeEveryOtherRound.forEach((n, i) => {
     push(`Toe dec ${i + 1}`, `${wedge} (${n})`, n);
     push(`Toe dec ${i + 1} — plain`, `k around (${n})`, n);
