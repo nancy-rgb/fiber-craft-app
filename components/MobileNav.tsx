@@ -51,7 +51,7 @@ const tabs = [
   },
   {
     href: "/colorwork/new",
-    label: "Photo",
+    label: "Colorwork",
     icon: null,
     Icon: Camera,
   },
@@ -73,40 +73,41 @@ export function MobileNav() {
             <li key={tab.href}>
               <Link
                 href={tab.href}
+                aria-label={tab.label}
+                title={tab.label}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-16 flex-col items-center justify-center gap-1 px-0.5 text-[11px] font-medium ${
-                  active ? "text-accent" : "text-muted"
-                }`}
+                className="flex min-h-16 items-center justify-center"
               >
-                {tab.Icon ? (
-                  <span
-                    className={`flex size-8 items-center justify-center rounded-full ${
-                      active
-                        ? "bg-accent text-accent-foreground"
-                        : "bg-accent/15 text-accent"
-                    }`}
-                  >
+                <span
+                  className={`flex size-11 items-center justify-center rounded-full transition-colors ${
+                    active
+                      ? "bg-accent text-accent-foreground"
+                      : tab.Icon
+                        ? "bg-accent/15 text-accent"
+                        : "text-muted"
+                  }`}
+                >
+                  {tab.Icon ? (
                     <tab.Icon
-                      className="size-5"
+                      className="size-6"
                       strokeWidth={1.8}
                       aria-hidden
                     />
-                  </span>
-                ) : (
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="size-6"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.8}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    {tab.icon}
-                  </svg>
-                )}
-                <span className="text-center leading-tight">{tab.label}</span>
+                  ) : (
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="size-6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.8}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      {tab.icon}
+                    </svg>
+                  )}
+                </span>
               </Link>
             </li>
           );
